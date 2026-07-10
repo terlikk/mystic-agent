@@ -130,6 +130,17 @@ async def test_off_blocks_execution(paths):
     assert "tool.blocked:add_note" in actions
 
 
+def test_email_host_derivation():
+    from mystic_agent.email_tools import derive_hosts
+
+    assert derive_hosts("jan@gmail.com") == ("imap.gmail.com", "smtp.gmail.com")
+    assert derive_hosts("jan@outlook.com") == (
+        "outlook.office365.com",
+        "smtp-mail.outlook.com",
+    )
+    assert derive_hosts("jan@firma.pl") == ("imap.firma.pl", "smtp.firma.pl")
+
+
 async def test_remind_tool_schedules_reminder(paths):
     db_path, _ = paths
     tools = {t.name: t for t in builtin_tools(db_path)}

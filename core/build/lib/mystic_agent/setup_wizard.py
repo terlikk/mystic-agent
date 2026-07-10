@@ -108,39 +108,6 @@ def run_wizard(force: bool = False) -> None:
                 "  [yellow]•[/] pominięto — bez telegrama zostaje samo API"
             )
 
-    # ── E-mail (opcjonalnie) ─────────────────────────────────────
-    if force or not vault.get("email_address"):
-        console.print(
-            "\n[bold]E-mail[/bold] (opcjonalnie) — agent będzie mógł czytać "
-            "skrzynkę i, za Twoją zgodą, odpisywać.\nGmail: włącz weryfikację "
-            "dwuetapową i wygeneruj hasło aplikacji na "
-            "[dim]myaccount.google.com/apppasswords[/dim]."
-        )
-        address = Prompt.ask(
-            "[bold #2563eb]Adres e-mail[/] (enter = pomiń)",
-            default="",
-            show_default=False,
-        ).strip()
-        if address:
-            password = Prompt.ask(
-                "[bold #2563eb]Hasło aplikacji[/]",
-                password=True,
-            ).strip()
-            from .email_tools import derive_hosts
-
-            imap_default, smtp_default = derive_hosts(address)
-            imap_host = Prompt.ask(
-                "[bold #2563eb]Serwer IMAP[/]", default=imap_default
-            ).strip()
-            smtp_host = Prompt.ask(
-                "[bold #2563eb]Serwer SMTP[/]", default=smtp_default
-            ).strip()
-            vault.set("email_address", address)
-            vault.set("email_password", password)
-            vault.set("email_imap_host", imap_host)
-            vault.set("email_smtp_host", smtp_host)
-            console.print("  [green]✓[/] skrzynka podpięta (dane w sejfie)")
-
     # ── Osobowość ────────────────────────────────────────────────
     if force or not vault.get("persona_key"):
         from .personas import select_persona

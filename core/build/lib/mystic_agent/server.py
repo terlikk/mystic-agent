@@ -38,21 +38,6 @@ def build_app() -> FastAPI:
     for tool in builtin_tools(settings.db_path):
         registry.register(tool)
 
-    email_address = vault.get("email_address") or ""
-    email_password = vault.get("email_password") or ""
-    if email_address and email_password:
-        from .email_tools import Mailbox, derive_hosts, email_tools
-
-        imap_default, smtp_default = derive_hosts(email_address)
-        mailbox = Mailbox(
-            email_address,
-            email_password,
-            vault.get("email_imap_host") or imap_default,
-            vault.get("email_smtp_host") or smtp_default,
-        )
-        for tool in email_tools(mailbox):
-            registry.register(tool)
-
     telegram: TelegramGateway | None = None
     token = settings.telegram_bot_token or vault.get("telegram_bot_token") or ""
     owner_id = settings.telegram_owner_id or int(
