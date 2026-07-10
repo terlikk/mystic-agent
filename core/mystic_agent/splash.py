@@ -34,6 +34,17 @@ def print_splash(telegram_on: bool, model: str, tool_count: int) -> None:
     table.add_row("LICENSE", "MIT · open source")
     console.print(table)
     console.print()
+
+    url = f"http://{settings.host}:{settings.port}"
+    panel = Text()
+    panel.append("  ▸ Panel sterowania: ", style="bold #22d3ee")
+    panel.append(url, style="bold underline #22d3ee")
+    panel.append("  (otwórz w przeglądarce)", style="dim")
+    console.print(panel)
+    console.print(
+        Text("    tylko na tej maszynie — Twój agent, Twój panel", style="dim")
+    )
+    console.print()
     console.print(
         Text(f"● w budowie — {REPO_URL}", style="#7c3aed"),
     )
