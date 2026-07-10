@@ -49,10 +49,14 @@ class AgentLoop:
         system_prompt: str | None = None,
         forge=None,
         skills_dir=None,
+        memory=None,
+        conversation=None,
     ) -> None:
         self.system_prompt = system_prompt or build_system_prompt()
         self.forge = forge
         self.skills_dir = skills_dir
+        self.memory = memory
+        self.conversation = conversation
         self.bus = bus
         self.provider = provider
         self.tools = tools
@@ -121,15 +125,34 @@ class AgentLoop:
             {"decision_id": decision_id},
         )
 
+    def _effective_system(self) -> str:
+        prompt = self.system_prompt
+        if self.memory is not None:
+            block = self.memory.recall_block()
+            if block:
+                prompt = f"{prompt}\n\n{block}"
+        return prompt
+
     async def _converse(self, user_text: str) -> None:
-        messages: list[dict[str, Any]] = [{"role": "user", "content": user_text}]
+        history: list[dict[str, Any]] = (
+            self.conversation.recent() if self.conversation is not None else []
+        )
+        messages: list[dict[str, Any]] = [
+            *history,
+            {"role": "user", "content": user_text},
+        ]
+        if self.conversation is not None:
+            self.conversation.append("user", user_text)
+        system = self._effective_system()
         for _ in range(MAX_STEPS):
             reply = await self.provider.chat(
-                self.system_prompt, messages, self.tools.specs()
+                system, messages, self.tools.specs()
             )
             if not reply.tool_calls:
                 if reply.text:
                     await self.notify(reply.text, None)
+                    if self.conversation is not None:
+                        self.conversation.append("assistant", reply.text)
                     self.audit.record(
                         "agent", "reply", user_text, reply.text, "odpowiedź tekstowa"
                     )

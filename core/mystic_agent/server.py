@@ -83,6 +83,7 @@ def build_app() -> FastAPI:
     )
     from .agent import build_system_prompt
     from .forge import Forge
+    from .memory import Conversation, Memory
     from .skills_loader import skills_dir
 
     system_prompt = build_system_prompt(
@@ -94,6 +95,8 @@ def build_app() -> FastAPI:
         system_prompt=system_prompt,
         forge=Forge(provider),
         skills_dir=skills_dir(settings.data_dir),
+        memory=Memory(settings.db_path),
+        conversation=Conversation(settings.db_path),
     )
 
     async def reminder_worker() -> None:

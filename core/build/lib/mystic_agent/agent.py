@@ -47,8 +47,12 @@ class AgentLoop:
         audit: AuditLog,
         notify: Notifier,
         system_prompt: str | None = None,
+        forge=None,
+        skills_dir=None,
     ) -> None:
         self.system_prompt = system_prompt or build_system_prompt()
+        self.forge = forge
+        self.skills_dir = skills_dir
         self.bus = bus
         self.provider = provider
         self.tools = tools
@@ -82,10 +86,40 @@ class AgentLoop:
                 "user", "decision.rejected", event.payload, "skipped",
                 "użytkownik odrzucił propozycję", event.payload.get("id"),
             )
+        elif event.type == "forge.request":
+            await self._forge_skill(event.payload["description"])
         elif event.type == "cron.tick":
             pass  # watchers will hook in here (stage 2+)
         else:
             log.debug("ignoring event type %s", event.type)
+
+    async def _forge_skill(self, description: str) -> None:
+        if self.forge is None:
+            await self.notify("Kuźnia narzędzi jest niedostępna.", None)
+            return
+        await self.notify(f"🛠 Kuję narzędzie: {description} …", None)
+        result = await self.forge.forge(description)
+        if not result.ok:
+            await self.notify(f"Nie udało się: {result.error}", None)
+            self.audit.record(
+                "agent", "forge.failed", description, result.error, "kuźnia"
+            )
+            return
+        decision_id = self.inbox.propose(
+            "forge", "__forge__",
+            {"name": result.name, "code": result.code, "description": description},
+            f"nowe narzędzie '{result.name}' — przeszło samotest w sandboxie",
+        )
+        self.audit.record(
+            "agent", "forge.proposed", description, result.name,
+            "narzędzie czeka na akceptację", decision_id,
+        )
+        preview = result.code[:900]
+        await self.notify(
+            f"🛠 Gotowe narzędzie: {result.name}\nSamotest w sandboxie: ✓\n\n"
+            f"```\n{preview}\n```\nZarejestrować na stałe?",
+            {"decision_id": decision_id},
+        )
 
     async def _converse(self, user_text: str) -> None:
         messages: list[dict[str, Any]] = [{"role": "user", "content": user_text}]
@@ -151,6 +185,9 @@ class AgentLoop:
         return result
 
     async def _execute_approved(self, decision: dict[str, Any]) -> None:
+        if decision["tool"] == "__forge__":
+            await self._register_forged(decision)
+            return
         tool = self.tools.get(decision["tool"])
         if tool is None:
             return
@@ -160,3 +197,25 @@ class AgentLoop:
             "wykonano po zgodzie użytkownika", decision["id"],
         )
         await self.notify(f"✓ zatwierdzone i wykonane — {tool.name}: {result}", None)
+
+    async def _register_forged(self, decision: dict[str, Any]) -> None:
+        from .skills_loader import load_one
+
+        args = decision["args"]
+        name = args["name"]
+        path = self.skills_dir / f"{name}.py"
+        path.write_text(args["code"], encoding="utf-8")
+        tool = await load_one(path)
+        if tool is None:
+            await self.notify(f"Nie udało się załadować {name}.", None)
+            return
+        self.tools.register(tool)
+        self.audit.record(
+            "agent", "forge.registered", name, str(path),
+            "narzędzie zarejestrowane po zgodzie użytkownika", decision["id"],
+        )
+        await self.notify(
+            f"✓ Nauczyłem się: {name}. Możesz już go używać "
+            f"(uprawnienie '{tool.capability}').",
+            None,
+        )

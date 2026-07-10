@@ -38,6 +38,17 @@ CREATE TABLE IF NOT EXISTS reminders (
     text TEXT NOT NULL,
     status TEXT NOT NULL DEFAULT 'pending'  -- pending | sent
 );
+CREATE TABLE IF NOT EXISTS memory (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ts TEXT NOT NULL,
+    fact TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ts TEXT NOT NULL,
+    role TEXT NOT NULL,             -- user | assistant
+    content TEXT NOT NULL
+);
 CREATE TABLE IF NOT EXISTS audit (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     ts TEXT NOT NULL,

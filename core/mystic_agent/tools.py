@@ -76,6 +76,23 @@ def builtin_tools(db_path: Path) -> list[Tool]:
             return "brak notatek"
         return "\n".join(f"{r['id']}. {r['text']}" for r in rows)
 
+    async def remember(args: dict[str, Any]) -> str:
+        from .memory import Memory
+
+        fact = str(args.get("fact", "")).strip()
+        if not fact:
+            return "nic do zapamiętania"
+        Memory(db_path).add(fact)
+        return f"zapamiętane: {fact}"
+
+    async def recall(_: dict[str, Any]) -> str:
+        from .memory import Memory
+
+        facts = Memory(db_path).all()
+        if not facts:
+            return "nic jeszcze nie zapamiętałem"
+        return "\n".join(f"{i}. {f}" for i, f in facts)
+
     async def remind(args: dict[str, Any]) -> str:
         text = str(args.get("text", "")).strip()
         minutes = float(args.get("minutes", 0))
@@ -152,6 +169,27 @@ def builtin_tools(db_path: Path) -> list[Tool]:
             description="Wyświetla zapisane notatki użytkownika.",
             parameters={"type": "object", "properties": {}},
             func=list_notes,
+        ),
+        Tool(
+            name="remember",
+            capability="memory",
+            description="Zapamiętuje trwały fakt o użytkowniku (imię, preferencje,"
+            " ważne dane), by pamiętać go w przyszłych rozmowach.",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "fact": {"type": "string", "description": "Fakt do zapamiętania"}
+                },
+                "required": ["fact"],
+            },
+            func=remember,
+        ),
+        Tool(
+            name="recall",
+            capability="memory",
+            description="Wypisuje wszystko, co agent zapamiętał o użytkowniku.",
+            parameters={"type": "object", "properties": {}},
+            func=recall,
         ),
         Tool(
             name="remind",

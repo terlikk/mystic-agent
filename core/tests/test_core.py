@@ -153,6 +153,80 @@ async def test_remind_tool_schedules_reminder(paths):
     assert rows[0]["status"] == "pending"
 
 
+def test_memory_recall_block(paths):
+    from mystic_agent.memory import Memory
+
+    db_path, _ = paths
+    mem = Memory(db_path)
+    assert mem.recall_block() == ""
+    mem.add("księgowa to Anna, anna@example.com")
+    mem.add("auto: przegląd w marcu")
+    block = mem.recall_block()
+    assert "Anna" in block and "przegląd" in block
+
+
+class RememberProvider:
+    """Calls remember once, then replies."""
+
+    def __init__(self) -> None:
+        self.calls = 0
+        self.seen_system = ""
+
+    async def chat(self, system, messages, tools):
+        self.seen_system = system
+        self.calls += 1
+        if self.calls == 1:
+            return LLMReply(
+                tool_calls=[ToolCall("remember", {"fact": "mam na imię Filip"})]
+            )
+        return LLMReply(text="Zapamiętane, Filip.")
+
+
+async def test_conversation_history_persists_and_feeds_back(paths):
+    from mystic_agent.memory import Conversation, Memory
+
+    db_path, _ = paths
+    bus = EventBus()
+    audit = AuditLog(db_path)
+    permissions = PermissionStore(db_path)
+    permissions.set("memory", Level.ACT_SILENT)
+    inbox = DecisionInbox(db_path)
+    registry = ToolRegistry()
+    for tool in builtin_tools(db_path):
+        registry.register(tool)
+    provider = RememberProvider()
+
+    async def notify(text, meta=None):
+        pass
+
+    loop = AgentLoop(
+        bus, provider, registry, permissions, inbox, audit, notify,
+        memory=Memory(db_path), conversation=Conversation(db_path),
+    )
+    await loop.handle(
+        Event(type="telegram.message", payload={"text": "zapamiętaj: mam na imię Filip"},
+              source="test")
+    )
+    # the fact was stored and the conversation recorded
+    assert any("Filip" in f for _, f in Memory(db_path).all())
+    history = Conversation(db_path).recent()
+    assert history[0]["role"] == "user"
+    assert history[-1]["role"] == "assistant"
+
+    # next turn sees the memory injected into the system prompt
+    provider2 = RememberProvider()
+    provider2.calls = 5  # force a plain reply
+    loop2 = AgentLoop(
+        bus, provider2, registry, permissions, inbox, audit, notify,
+        memory=Memory(db_path), conversation=Conversation(db_path),
+    )
+    await loop2.handle(
+        Event(type="telegram.message", payload={"text": "jak mam na imię?"},
+              source="test")
+    )
+    assert "Filip" in provider2.seen_system
+
+
 class ForgeProvider:
     """Returns a valid skill file that doubles a number."""
 
