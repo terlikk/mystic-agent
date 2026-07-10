@@ -284,6 +284,35 @@ def build_app() -> FastAPI:
             "version": __version__,
             "events_pending": bus.pending,
             "telegram": telegram is not None,
+            "paused": flags.get_bool("paused"),
+            "tools": len(registry.all()),
+            "automations": len(automations.enabled()),
+            "pending": len(inbox.pending()),
+        }
+
+    @app.post("/pause")
+    async def pause() -> dict:
+        flags.set_bool("paused", True)
+        audit.record("user", "pause", {}, "ok", "wstrzymano z panelu")
+        return {"paused": True}
+
+    @app.post("/resume")
+    async def resume() -> dict:
+        flags.set_bool("paused", False)
+        audit.record("user", "resume", {}, "ok", "wznowiono z panelu")
+        return {"paused": False}
+
+    @app.get("/budget")
+    async def budget() -> dict:
+        from .wallet import Wallet
+
+        w = Wallet(settings.db_path)
+        per_txn, monthly, currency = w.policy()
+        return {
+            "per_txn": per_txn,
+            "monthly": monthly,
+            "currency": currency,
+            "spent": w.spent_this_month(),
         }
 
     @app.get("/audit")
