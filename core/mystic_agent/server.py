@@ -35,7 +35,7 @@ def build_app() -> FastAPI:
     inbox = DecisionInbox(settings.db_path)
 
     registry = ToolRegistry()
-    for tool in builtin_tools(notes=[]):
+    for tool in builtin_tools(settings.db_path):
         registry.register(tool)
 
     telegram: TelegramGateway | None = None
@@ -60,9 +60,39 @@ def build_app() -> FastAPI:
     )
     loop = AgentLoop(bus, provider, registry, permissions, inbox, audit, notify)
 
+    async def reminder_worker() -> None:
+        """Fires due reminders — the agent speaks up on its own."""
+        from datetime import datetime, timezone
+
+        from .db import db as open_db
+
+        while True:
+            await asyncio.sleep(10)
+            now = datetime.now(timezone.utc).isoformat()
+            with open_db(settings.db_path) as conn:
+                due = conn.execute(
+                    "SELECT id, text FROM reminders WHERE status = 'pending'"
+                    " AND due_at <= ?",
+                    (now,),
+                ).fetchall()
+                for row in due:
+                    conn.execute(
+                        "UPDATE reminders SET status = 'sent' WHERE id = ?",
+                        (row["id"],),
+                    )
+            for row in due:
+                await notify(f"⏰ Przypomnienie: {row['text']}", None)
+                audit.record(
+                    "agent", "reminder.fired", {"id": row["id"]},
+                    row["text"], "zaplanowane przypomnienie",
+                )
+
     @asynccontextmanager
     async def lifespan(_: FastAPI):
-        tasks = [asyncio.create_task(loop.run_forever(), name="agent-loop")]
+        tasks = [
+            asyncio.create_task(loop.run_forever(), name="agent-loop"),
+            asyncio.create_task(reminder_worker(), name="reminders"),
+        ]
         if telegram is not None:
             await telegram.start()
         if settings.heartbeat_seconds > 0:
