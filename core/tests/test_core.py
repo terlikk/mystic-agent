@@ -85,6 +85,36 @@ async def test_no_double_proposal(paths):
     assert sum("Proponuję" in s for s in sent) == 1
 
 
+async def test_contacts_and_tasks(paths):
+    db_path, _ = paths
+    tools = {t.name: t for t in builtin_tools(db_path)}
+
+    await tools["add_contact"].func(
+        {"name": "Anna Księgowa", "email": "anna@biuro.pl", "note": "księgowość"}
+    )
+    found = await tools["find_contact"].func({"query": "księgow"})
+    assert "anna@biuro.pl" in found
+
+    await tools["add_task"].func({"text": "wysłać fakturę", "due": "piątek"})
+    open_tasks = await tools["list_tasks"].func({})
+    assert "wysłać fakturę" in open_tasks
+    # complete it → no longer open
+    tid = int(open_tasks.split("]")[0].strip("["))
+    await tools["complete_task"].func({"id": tid})
+    assert "brak zadań" in await tools["list_tasks"].func({})
+
+
+async def test_write_file(paths, tmp_path):
+    db_path, _ = paths
+    tools = {t.name: t for t in builtin_tools(db_path)}
+    target = tmp_path / "out" / "report.md"
+    out = await tools["write_file"].func(
+        {"path": str(target), "content": "# Raport\ngotowe"}
+    )
+    assert "zapisano" in out
+    assert target.read_text() == "# Raport\ngotowe"
+
+
 def test_wallet_budget_ceiling(paths):
     from mystic_agent.wallet import Wallet
 

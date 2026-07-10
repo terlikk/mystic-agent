@@ -216,6 +216,102 @@ def builtin_tools(db_path: Path) -> list[Tool]:
             text = path.read_text(encoding="utf-8", errors="replace")
         return text[:6000].strip() or "(pusty plik)"
 
+    async def write_file(args: dict[str, Any]) -> str:
+        from pathlib import Path as _Path
+
+        raw = str(args.get("path", "")).strip()
+        content = str(args.get("content", ""))
+        if not raw:
+            return "podaj ścieżkę do zapisu"
+        path = _Path(raw).expanduser()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(content, encoding="utf-8")
+        return f"zapisano {len(content)} znaków do {path}"
+
+    # ── contacts ─────────────────────────────────────────────────
+    async def add_contact(args: dict[str, Any]) -> str:
+        name = str(args.get("name", "")).strip()
+        if not name:
+            return "podaj imię/nazwę kontaktu"
+        with db(db_path) as conn:
+            conn.execute(
+                "INSERT INTO contacts (ts, name, email, phone, note)"
+                " VALUES (?, ?, ?, ?, ?)",
+                (
+                    datetime.now(timezone.utc).isoformat(),
+                    name,
+                    str(args.get("email", "")),
+                    str(args.get("phone", "")),
+                    str(args.get("note", "")),
+                ),
+            )
+        return f"dodano kontakt: {name}"
+
+    async def find_contact(args: dict[str, Any]) -> str:
+        q = f"%{str(args.get('query', '')).strip()}%"
+        with db(db_path) as conn:
+            rows = conn.execute(
+                "SELECT name, email, phone, note FROM contacts"
+                " WHERE name LIKE ? OR email LIKE ? OR note LIKE ?"
+                " ORDER BY name LIMIT 10",
+                (q, q, q),
+            ).fetchall()
+        if not rows:
+            return "brak pasujących kontaktów"
+        return "\n".join(
+            f"{r['name']} · {r['email'] or '—'} · {r['phone'] or '—'}"
+            + (f" · {r['note']}" if r["note"] else "")
+            for r in rows
+        )
+
+    async def list_contacts(_: dict[str, Any]) -> str:
+        with db(db_path) as conn:
+            rows = conn.execute(
+                "SELECT name, email FROM contacts ORDER BY name"
+            ).fetchall()
+        if not rows:
+            return "książka kontaktów pusta"
+        return "\n".join(f"{r['name']} · {r['email'] or '—'}" for r in rows)
+
+    # ── tasks / to-do ────────────────────────────────────────────
+    async def add_task(args: dict[str, Any]) -> str:
+        text = str(args.get("text", "")).strip()
+        if not text:
+            return "podaj treść zadania"
+        with db(db_path) as conn:
+            conn.execute(
+                "INSERT INTO tasks (ts, text, due) VALUES (?, ?, ?)",
+                (
+                    datetime.now(timezone.utc).isoformat(),
+                    text,
+                    str(args.get("due", "")),
+                ),
+            )
+        return f"dodano zadanie: {text}"
+
+    async def list_tasks(args: dict[str, Any]) -> str:
+        status = str(args.get("status", "open"))
+        with db(db_path) as conn:
+            rows = conn.execute(
+                "SELECT id, text, due FROM tasks WHERE status = ? ORDER BY id",
+                (status,),
+            ).fetchall()
+        if not rows:
+            return "brak zadań" if status == "open" else "brak w tym statusie"
+        return "\n".join(
+            f"[{r['id']}] {r['text']}" + (f" (do {r['due']})" if r["due"] else "")
+            for r in rows
+        )
+
+    async def complete_task(args: dict[str, Any]) -> str:
+        tid = int(args.get("id", 0))
+        with db(db_path) as conn:
+            cur = conn.execute(
+                "UPDATE tasks SET status = 'done' WHERE id = ? AND status = 'open'",
+                (tid,),
+            )
+        return f"odhaczono zadanie #{tid}" if cur.rowcount else f"nie ma otwartego #{tid}"
+
     return [
         Tool(
             name="get_time",
@@ -365,6 +461,93 @@ def builtin_tools(db_path: Path) -> list[Tool]:
                 "required": ["path"],
             },
             func=read_file,
+        ),
+        Tool(
+            name="write_file",
+            capability="files_write",
+            description="Zapisuje treść do lokalnego pliku (raport, notatka,"
+            " eksport). Tworzy foldery, jeśli trzeba.",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string", "description": "Ścieżka pliku"},
+                    "content": {"type": "string", "description": "Co zapisać"},
+                },
+                "required": ["path", "content"],
+            },
+            func=write_file,
+        ),
+        Tool(
+            name="add_contact",
+            capability="contacts",
+            description="Dodaje osobę do książki kontaktów (imię, mail, telefon).",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string"},
+                    "email": {"type": "string"},
+                    "phone": {"type": "string"},
+                    "note": {"type": "string", "description": "Kto to / kontekst"},
+                },
+                "required": ["name"],
+            },
+            func=add_contact,
+        ),
+        Tool(
+            name="find_contact",
+            capability="contacts",
+            description="Szuka kontaktu po imieniu/mailu/notatce (użyj, zanim"
+            " napiszesz do kogoś, by znaleźć jego adres).",
+            parameters={
+                "type": "object",
+                "properties": {"query": {"type": "string"}},
+                "required": ["query"],
+            },
+            func=find_contact,
+        ),
+        Tool(
+            name="list_contacts",
+            capability="contacts",
+            description="Wypisuje wszystkie zapisane kontakty.",
+            parameters={"type": "object", "properties": {}},
+            func=list_contacts,
+        ),
+        Tool(
+            name="add_task",
+            capability="tasks",
+            description="Dodaje zadanie do listy rzeczy do zrobienia.",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "text": {"type": "string"},
+                    "due": {"type": "string", "description": "Termin (opcjonalnie)"},
+                },
+                "required": ["text"],
+            },
+            func=add_task,
+        ),
+        Tool(
+            name="list_tasks",
+            capability="tasks",
+            description="Pokazuje zadania (domyślnie otwarte).",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "status": {"type": "string", "description": "open lub done"}
+                },
+            },
+            func=list_tasks,
+        ),
+        Tool(
+            name="complete_task",
+            capability="tasks",
+            description="Odhacza zadanie po numerze.",
+            parameters={
+                "type": "object",
+                "properties": {"id": {"type": "integer"}},
+                "required": ["id"],
+            },
+            func=complete_task,
         ),
     ]
 

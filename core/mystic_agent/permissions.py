@@ -34,6 +34,9 @@ CAPABILITY_DEFAULTS: dict[str, "Level"] = {
     "notes": Level.ACT_SILENT,
     "memory": Level.ACT_SILENT,
     "files": Level.ACT_SILENT,      # reading local files
+    "contacts": Level.ACT_SILENT,
+    "tasks": Level.ACT_SILENT,
+    "files_write": Level.ACT_REPORT,  # writing to disk — tell the owner
     "reminders": Level.ACT_REPORT,
     "calendar": Level.ACT_REPORT,
     "automations": Level.ACT_REPORT,
