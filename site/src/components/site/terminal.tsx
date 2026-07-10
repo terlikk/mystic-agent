@@ -30,7 +30,9 @@ function toRuns(lines: readonly string[], ch: string): Runs {
   });
 }
 
-const SHADOW = 0.55;
+/* full-cell offset → chunky, perfectly square 3D extrusion */
+const SHADOW = 1;
+const SHADOW_COLOR = "#312e81";
 
 function PixelArt({
   runs,
@@ -73,19 +75,8 @@ function PixelArt({
           <stop offset="0" stopColor="#2563eb" />
           <stop offset="1" stopColor="#7c3aed" />
         </linearGradient>
-        <linearGradient
-          id={`${gradId}-sh`}
-          gradientUnits="userSpaceOnUse"
-          x1="0"
-          y1="0"
-          x2="0"
-          y2={height}
-        >
-          <stop offset="0" stopColor="#1e3a8a" />
-          <stop offset="1" stopColor="#4c1d95" />
-        </linearGradient>
       </defs>
-      {/* shadow layer first, then the lit layer on top */}
+      {/* extrusion layer first, then the lit face on top */}
       {rects.map((r, i) => (
         <rect
           key={`s${i}`}
@@ -93,7 +84,7 @@ function PixelArt({
           y={r.y + SHADOW}
           width={r.len}
           height={1.03}
-          fill={`url(#${gradId}-sh)`}
+          fill={SHADOW_COLOR}
         />
       ))}
       {rects.map((r, i) => (
@@ -116,21 +107,6 @@ const BANNER_RUNS = toRuns(ASCII_BANNER, "█");
 const WORD_BREAK = 5;
 const WORD_GAP = 0.7;
 const bannerShift = (y: number) => (y >= WORD_BREAK ? y + WORD_GAP : y);
-
-/* the mark: a pixel crystal — mystic, cuttable into a favicon later */
-const GEM = [
-  "  #########  ",
-  " ########### ",
-  "#############",
-  "#############",
-  " ########### ",
-  "  #########  ",
-  "   #######   ",
-  "    #####    ",
-  "     ###     ",
-  "      #      ",
-] as const;
-const GEM_RUNS = toRuns(GEM, "#");
 
 const NEOFETCH_ROWS: [string, string][] = [
   ["DESIGNATION", `${PROJECT.name} ${PROJECT.version}`],
@@ -265,20 +241,13 @@ export function Terminal() {
           />
         </div>
 
-        <div className="flex items-start gap-5 pt-1">
-          <div data-row className="hidden w-14 shrink-0 pt-1 sm:block">
-            <PixelArt runs={GEM_RUNS} width={GEM[0].length} gradId="gem-grad" />
-          </div>
-          <div className="min-w-0 flex-1 space-y-1 text-xs sm:text-[13px]">
-            {NEOFETCH_ROWS.map(([k, v]) => (
-              <p key={k} data-row className="flex will-change-transform">
-                <span className="w-24 shrink-0 text-[#7aa5ff] sm:w-28">
-                  {k}
-                </span>
-                <span className="flex-1 text-white/80">{v}</span>
-              </p>
-            ))}
-          </div>
+        <div className="space-y-1 pt-1 text-xs sm:text-[13px]">
+          {NEOFETCH_ROWS.map(([k, v]) => (
+            <p key={k} data-row className="flex will-change-transform">
+              <span className="w-24 shrink-0 text-[#7aa5ff] sm:w-28">{k}</span>
+              <span className="flex-1 text-white/80">{v}</span>
+            </p>
+          ))}
         </div>
 
         <p data-status className="text-[#a78bfa]">
