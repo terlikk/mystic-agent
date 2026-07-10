@@ -1,6 +1,6 @@
 [project]
 name = "mystic-agent"
-version = "0.2.0"
+version = "0.2.1"
 description = "Your open-source Jarvis. Self-hosted, autonomous, accountable."
 readme = "README.md"
 requires-python = ">=3.11"

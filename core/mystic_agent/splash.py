@@ -29,8 +29,13 @@ def print_banner(console: Console | None = None) -> None:
         pass
     console.print()
     console.print()
+    # center the whole block by a single margin so internal alignment holds
+    # (centering each line on its own width would skew the art)
+    width = max(len(line) for line in BANNER)
+    margin = max(0, (console.size.width - width) // 2)
+    pad = " " * margin
     for i, line in enumerate(BANNER):
-        console.print(Text(line, style=f"bold {_shade(i, len(BANNER))}"), justify="center")
+        console.print(Text(pad + line, style=f"bold {_shade(i, len(BANNER))}"))
     console.print()
     tagline = Text()
     tagline.append("Twój Jarvis.  ", style="bold #e7edf5")
