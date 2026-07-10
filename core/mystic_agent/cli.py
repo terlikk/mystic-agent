@@ -1,0 +1,59 @@
+import logging
+
+import click
+import uvicorn
+
+from . import __version__
+from .branding import CLI_NAME, NAME
+from .config import settings
+
+
+@click.group()
+@click.version_option(__version__, prog_name=CLI_NAME)
+def main() -> None:
+    f"""{NAME} — Twój Jarvis. Twój serwer. Twoje zasady."""
+
+
+@main.command()
+@click.option("--host", default=None, help="Adres nasłuchu (domyślnie 127.0.0.1)")
+@click.option("--port", default=None, type=int, help="Port (domyślnie 7700)")
+def start(host: str | None, port: int | None) -> None:
+    """Uruchom agenta (serwis + pętla zdarzeń + telegram)."""
+    logging.basicConfig(
+        level=logging.INFO, format="%(asctime)s %(name)s: %(message)s"
+    )
+    if host:
+        settings.host = host
+    if port:
+        settings.port = port
+
+    from .server import build_app
+    from .splash import print_splash
+
+    app = build_app()
+    print_splash(
+        telegram_on=bool(settings.telegram_bot_token),
+        model=settings.llm_model,
+        tool_count=3,
+    )
+    uvicorn.run(app, host=settings.host, port=settings.port, log_level="warning")
+
+
+@main.command()
+def status() -> None:
+    """Sprawdź, czy agent działa."""
+    import json
+    import urllib.request
+
+    url = f"http://{settings.host}:{settings.port}/health"
+    try:
+        with urllib.request.urlopen(url, timeout=3) as resp:
+            data = json.load(resp)
+        click.echo(json.dumps(data, indent=2, ensure_ascii=False))
+    except OSError:
+        click.echo(f"{NAME} nie odpowiada na {url}")
+        raise SystemExit(1)
+
+
+if __name__ == "__main__":
+    main()

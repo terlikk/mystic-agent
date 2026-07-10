@@ -72,8 +72,8 @@ Credentials (OAuth tokens, API keys, bot tokens) live in a local encrypted vault
 
 ## Roadmap
 
-- [ ] Landing page
-- [ ] Core: event bus, agent loop, permission system, vault, audit log, Telegram gateway
+- [x] Landing page — [mystic-agent.vercel.app](https://mystic-agent.vercel.app)
+- [x] Core: event bus, agent loop, permission system, vault, audit log, Telegram gateway
 - [ ] Web dashboard: activity stream, decision inbox, skill cards, connections
 - [ ] Tool forge MVP
 - [ ] Telephony, Home Assistant
