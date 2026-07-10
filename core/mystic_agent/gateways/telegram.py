@@ -24,11 +24,13 @@ from ..permissions import DecisionInbox
 
 HELP_TEXT = (
     "Komendy MysticAgent:\n"
-    "/help — ta pomoc\n"
+    "/brief — podsumowanie: zadania, przypomnienia, kalendarz, poczta\n"
+    "/status — co chodzi, ile oczekujących decyzji\n"
+    "/pause — wstrzymaj samodzielne akcje  ·  /resume — wznów\n"
     "/skills — lista umiejętności\n"
     "/learn <opis> — naucz agenta nowego narzędzia\n"
     "/permissions — poziomy uprawnień\n\n"
-    "Poza tym po prostu pisz — zajmę się resztą."
+    "Poza tym po prostu pisz (lub nagraj / wyślij zdjęcie) — zajmę się resztą."
 )
 
 log = logging.getLogger(__name__)
@@ -44,6 +46,8 @@ class TelegramGateway:
         on_claim: Callable[[int], None] | None = None,
         registry=None,
         permissions=None,
+        flags=None,
+        status_fn=None,
     ) -> None:
         self._owner_id = owner_id
         self._bus = bus
@@ -51,15 +55,23 @@ class TelegramGateway:
         self._on_claim = on_claim
         self._registry = registry
         self._permissions = permissions
+        self._flags = flags
+        self._status_fn = status_fn
         self._app = Application.builder().token(token).build()
         self._app.add_handler(CommandHandler("help", self._cmd_help))
         self._app.add_handler(CommandHandler("start", self._cmd_help))
         self._app.add_handler(CommandHandler("skills", self._cmd_skills))
         self._app.add_handler(CommandHandler("learn", self._cmd_learn))
         self._app.add_handler(CommandHandler("permissions", self._cmd_permissions))
+        self._app.add_handler(CommandHandler("brief", self._cmd_brief))
+        self._app.add_handler(CommandHandler("status", self._cmd_status))
+        self._app.add_handler(CommandHandler("pause", self._cmd_pause))
+        self._app.add_handler(CommandHandler("resume", self._cmd_resume))
         self._app.add_handler(
             MessageHandler(filters.TEXT & ~filters.COMMAND, self._on_message)
         )
+        self._app.add_handler(MessageHandler(filters.PHOTO, self._on_photo))
+        self._app.add_handler(MessageHandler(filters.VOICE, self._on_voice))
         self._app.add_handler(CallbackQueryHandler(self._on_button))
 
     async def start(self) -> None:
@@ -128,6 +140,44 @@ class TelegramGateway:
         lines = [f"• {c}: {self._permissions.get(c).value}" for c in caps]
         await update.message.reply_text("Uprawnienia:\n" + "\n".join(lines))
 
+    async def _cmd_brief(self, update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
+        if not (update.message and self._is_owner(update.message.chat_id)):
+            return
+        await self._bus.publish(
+            Event(
+                type="automation.run",
+                payload={
+                    "instruction": "Zrób zwięzły briefing: otwarte zadania,"
+                    " dzisiejsze przypomnienia, najbliższe wydarzenia z kalendarza"
+                    " i (jeśli masz dostęp) nieprzeczytane maile. Krótko, punktowo.",
+                    "context": "",
+                },
+                source="telegram",
+            )
+        )
+
+    async def _cmd_status(self, update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
+        if not (update.message and self._is_owner(update.message.chat_id)):
+            return
+        text = self._status_fn() if self._status_fn else "brak danych"
+        await update.message.reply_text(text)
+
+    async def _cmd_pause(self, update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
+        if not (update.message and self._is_owner(update.message.chat_id)):
+            return
+        if self._flags:
+            self._flags.set_bool("paused", True)
+        await update.message.reply_text(
+            "⏸ Wstrzymane. Nie podejmę żadnych samodzielnych akcji. /resume by wznowić."
+        )
+
+    async def _cmd_resume(self, update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
+        if not (update.message and self._is_owner(update.message.chat_id)):
+            return
+        if self._flags:
+            self._flags.set_bool("paused", False)
+        await update.message.reply_text("▶️ Wznowione. Znów działam samodzielnie.")
+
     async def _cmd_learn(self, update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
         if not (update.message and self._is_owner(update.message.chat_id)):
             return
@@ -141,6 +191,47 @@ class TelegramGateway:
             Event(
                 type="forge.request",
                 payload={"description": desc},
+                source="telegram",
+            )
+        )
+
+    async def _on_photo(
+        self, update: Update, _: ContextTypes.DEFAULT_TYPE
+    ) -> None:
+        import tempfile
+
+        if update.message is None or not update.message.photo:
+            return
+        if not self._is_owner(update.message.chat_id):
+            return
+        photo = update.message.photo[-1]  # largest size
+        tg_file = await photo.get_file()
+        path = tempfile.mktemp(prefix="mystic-photo-", suffix=".jpg")
+        await tg_file.download_to_drive(path)
+        await self._bus.publish(
+            Event(
+                type="telegram.photo",
+                payload={"path": path, "caption": update.message.caption or ""},
+                source="telegram",
+            )
+        )
+
+    async def _on_voice(
+        self, update: Update, _: ContextTypes.DEFAULT_TYPE
+    ) -> None:
+        import tempfile
+
+        if update.message is None or update.message.voice is None:
+            return
+        if not self._is_owner(update.message.chat_id):
+            return
+        tg_file = await update.message.voice.get_file()
+        path = tempfile.mktemp(prefix="mystic-voice-", suffix=".ogg")
+        await tg_file.download_to_drive(path)
+        await self._bus.publish(
+            Event(
+                type="telegram.voice",
+                payload={"path": path},
                 source="telegram",
             )
         )

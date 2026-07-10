@@ -45,6 +45,29 @@ class AnthropicProvider:
         self._client = anthropic.AsyncAnthropic(api_key=api_key)
         self._model = model
 
+    async def describe_image(self, image_b64: str, prompt: str) -> str:
+        response = await self._client.messages.create(
+            model=self._model,
+            max_tokens=1024,
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "image",
+                            "source": {
+                                "type": "base64",
+                                "media_type": "image/jpeg",
+                                "data": image_b64,
+                            },
+                        },
+                        {"type": "text", "text": prompt},
+                    ],
+                }
+            ],
+        )
+        return "".join(b.text for b in response.content if b.type == "text")
+
     async def chat(
         self,
         system: str,
@@ -80,6 +103,26 @@ class OpenAIProvider:
 
         self._client = openai.AsyncOpenAI(api_key=api_key)
         self._model = model
+
+    async def describe_image(self, image_b64: str, prompt: str) -> str:
+        response = await self._client.chat.completions.create(
+            model=self._model,
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": prompt},
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/jpeg;base64,{image_b64}"
+                            },
+                        },
+                    ],
+                }
+            ],
+        )
+        return response.choices[0].message.content or ""
 
     async def chat(
         self,

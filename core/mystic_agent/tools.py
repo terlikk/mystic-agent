@@ -142,6 +142,53 @@ def builtin_tools(db_path: Path) -> list[Tool]:
         text = html.unescape(re.sub(r"\s+", " ", text)).strip()
         return text[:4000] or "(pusta strona)"
 
+    async def track_package(args: dict[str, Any]) -> str:
+        import httpx
+
+        number = str(args.get("number", "")).strip()
+        carrier = str(args.get("carrier", "")).strip().lower()
+        if not number:
+            return "podaj numer przesyłki"
+        async with httpx.AsyncClient(
+            follow_redirects=True, timeout=20,
+            headers={"User-Agent": "Mozilla/5.0"},
+        ) as client:
+            # InPost has a clean public JSON API
+            if carrier in ("inpost", "") and number.isalnum():
+                try:
+                    r = await client.get(
+                        f"https://api-shipx-pl.easypack24.net/v1/tracking/{number}"
+                    )
+                    if r.status_code == 200:
+                        d = r.json()
+                        status = d.get("status", "?")
+                        track = d.get("tracking_details") or []
+                        last = track[-1]["status_description"] if track else status
+                        return f"InPost {number}: {last} (status: {status})"
+                except Exception:
+                    pass
+            urls = {
+                "dpd": f"https://tracktrace.dpd.com.pl/parcelDetails?p1={number}",
+                "dhl": f"https://www.dhl.com/pl-pl/home/sledzenie.html?tracking-id={number}",
+                "poczta": f"https://emonitoring.poczta-polska.pl/?numer={number}",
+                "gls": f"https://gls-group.com/PL/pl/sledzenie-paczek?match={number}",
+                "ups": f"https://www.ups.com/track?tracknum={number}",
+            }
+            url = urls.get(carrier)
+            if not url:
+                return (
+                    f"Nie znam przewoźnika „{carrier}”. Podaj: inpost, dpd, dhl,"
+                    " poczta, gls lub ups — albo daj mi link do śledzenia."
+                )
+            resp = await client.get(url)
+            text = _TAG_RE.sub(" ", resp.text)
+            text = html.unescape(re.sub(r"\s+", " ", text)).strip()
+            return (
+                f"{carrier.upper()} {number} — {url}\n{text[:1200]}"
+                if text
+                else f"otwórz: {url}"
+            )
+
     async def web_search(args: dict[str, Any]) -> str:
         import httpx
 
@@ -406,6 +453,24 @@ def builtin_tools(db_path: Path) -> list[Tool]:
                 "required": ["url"],
             },
             func=read_url,
+        ),
+        Tool(
+            name="track_package",
+            capability="web",
+            description="Sprawdza status przesyłki po numerze (InPost, DPD, DHL,"
+            " Poczta Polska, GLS, UPS). Do stałego pilnowania użyj watch_url.",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "number": {"type": "string", "description": "Numer przesyłki"},
+                    "carrier": {
+                        "type": "string",
+                        "description": "inpost / dpd / dhl / poczta / gls / ups",
+                    },
+                },
+                "required": ["number"],
+            },
+            func=track_package,
         ),
         Tool(
             name="web_search",

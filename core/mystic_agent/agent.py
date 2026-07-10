@@ -52,13 +52,8 @@ class AgentLoop:
         skills_dir=None,
         memory=None,
         conversation=None,
+        flags=None,
     ) -> None:
-        self.system_prompt = system_prompt or build_system_prompt()
-        self.forge = forge
-        self.skills_dir = skills_dir
-        self.memory = memory
-        self.conversation = conversation
-        self._proposed = False
         self.bus = bus
         self.provider = provider
         self.tools = tools
@@ -66,6 +61,16 @@ class AgentLoop:
         self.inbox = inbox
         self.audit = audit
         self.notify = notify
+        self.system_prompt = system_prompt or build_system_prompt()
+        self.forge = forge
+        self.skills_dir = skills_dir
+        self.memory = memory
+        self.conversation = conversation
+        self.flags = flags
+        self._proposed = False
+
+    def is_paused(self) -> bool:
+        return self.flags is not None and self.flags.get_bool("paused")
 
     async def run_forever(self) -> None:
         log.info("agent loop started")
@@ -85,6 +90,12 @@ class AgentLoop:
     async def handle(self, event: Event) -> None:
         if event.type == "telegram.message":
             await self._converse(event.payload["text"])
+        elif event.type == "telegram.photo":
+            await self._handle_photo(
+                event.payload["path"], event.payload.get("caption", "")
+            )
+        elif event.type == "telegram.voice":
+            await self._handle_voice(event.payload["path"])
         elif event.type == "decision.approved":
             await self._execute_approved(event.payload)
         elif event.type == "decision.rejected":
@@ -95,6 +106,9 @@ class AgentLoop:
         elif event.type == "forge.request":
             await self._forge_skill(event.payload["description"])
         elif event.type == "automation.run":
+            if self.is_paused():
+                log.info("paused — skipping automation")
+                return
             await self.run_instruction(
                 event.payload["instruction"], event.payload.get("context", "")
             )
@@ -130,6 +144,66 @@ class AgentLoop:
             f"```\n{preview}\n```\nZarejestrować na stałe?",
             {"decision_id": decision_id},
         )
+
+    async def _handle_photo(self, path: str, caption: str) -> None:
+        import base64
+        import os
+
+        try:
+            with open(path, "rb") as f:
+                image_b64 = base64.b64encode(f.read()).decode()
+        finally:
+            try:
+                os.remove(path)
+            except OSError:
+                pass
+        describe = getattr(self.provider, "describe_image", None)
+        if describe is None:
+            await self.notify("Ten model nie obsługuje zdjęć.", None)
+            return
+        prompt = (
+            "Opisz dokładnie, co jest na obrazie. Jeśli to dokument, paragon,"
+            " faktura lub tekst — przepisz kluczowe dane i kwoty."
+        )
+        try:
+            seen = await describe(image_b64, prompt)
+        except Exception:
+            log.exception("vision failed")
+            await self.notify("Nie udało mi się odczytać zdjęcia.", None)
+            return
+        self.audit.record("agent", "vision", caption or "(zdjęcie)", seen[:400], "odczyt obrazu")
+        user_text = (
+            f"[Użytkownik przysłał zdjęcie. Jego treść:]\n{seen}\n\n"
+            f"{caption or 'Co z tym zrobić?'}"
+        )
+        await self._converse(user_text)
+
+    async def _handle_voice(self, path: str) -> None:
+        import os
+
+        from .transcription import transcribe
+
+        openai_key = getattr(self, "_openai_key", "")
+        try:
+            text = await transcribe(path, openai_key)
+        except Exception:
+            log.exception("transcription failed")
+            text = None
+        finally:
+            try:
+                os.remove(path)
+            except OSError:
+                pass
+        if not text:
+            await self.notify(
+                "Nie mam obsługi głosu. Zainstaluj: pip install"
+                ' "mystic-agent[voice]" (lub podaj klucz OpenAI).',
+                None,
+            )
+            return
+        self.audit.record("user", "voice", "(nagranie)", text, "transkrypcja")
+        await self.notify(f"🎙 „{text}”", None)
+        await self._converse(text)
 
     def _effective_system(self) -> str:
         prompt = self.system_prompt

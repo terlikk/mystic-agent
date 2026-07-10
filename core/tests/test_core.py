@@ -85,6 +85,41 @@ async def test_no_double_proposal(paths):
     assert sum("Proponuję" in s for s in sent) == 1
 
 
+async def test_pause_blocks_autonomous_but_not_chat(paths):
+    from mystic_agent.flags import Flags
+
+    db_path, _ = paths
+    bus = EventBus()
+    audit = AuditLog(db_path)
+    permissions = PermissionStore(db_path)
+    permissions.set("notes", Level.ACT_SILENT)
+    inbox = DecisionInbox(db_path)
+    registry = ToolRegistry()
+    for tool in builtin_tools(db_path):
+        registry.register(tool)
+    flags = Flags(db_path)
+    flags.set_bool("paused", True)
+
+    async def notify(text, meta=None):
+        pass
+
+    loop = AgentLoop(
+        bus, ScriptedProvider(), registry, permissions, inbox, audit, notify,
+        flags=flags,
+    )
+    assert loop.is_paused() is True
+    # an autonomous automation is skipped while paused
+    await loop.handle(
+        Event(type="automation.run", payload={"instruction": "zanotuj coś"},
+              source="test")
+    )
+    with db(db_path) as conn:
+        assert conn.execute("SELECT COUNT(*) c FROM notes").fetchone()["c"] == 0
+    # resuming lets it run
+    flags.set_bool("paused", False)
+    assert loop.is_paused() is False
+
+
 async def test_contacts_and_tasks(paths):
     db_path, _ = paths
     tools = {t.name: t for t in builtin_tools(db_path)}

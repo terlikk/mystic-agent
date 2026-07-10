@@ -38,8 +38,10 @@ def build_app() -> FastAPI:
     inbox = DecisionInbox(settings.db_path)
 
     from .automations import AutomationStore
+    from .flags import Flags
 
     automations = AutomationStore(settings.db_path)
+    flags = Flags(settings.db_path)
 
     registry = ToolRegistry()
     for tool in builtin_tools(settings.db_path):
@@ -68,6 +70,27 @@ def build_app() -> FastAPI:
         for tool in email_tools(mailbox):
             registry.register(tool)
 
+    def status_text() -> str:
+        from .db import db as open_db
+
+        with open_db(settings.db_path) as conn:
+            tasks = conn.execute(
+                "SELECT COUNT(*) c FROM tasks WHERE status='open'"
+            ).fetchone()["c"]
+            reminders = conn.execute(
+                "SELECT COUNT(*) c FROM reminders WHERE status='pending'"
+            ).fetchone()["c"]
+        paused = flags.get_bool("paused")
+        lines = [
+            f"{'⏸ WSTRZYMANY' if paused else '▶️ aktywny'}",
+            f"decyzje w kolejce: {len(inbox.pending())}",
+            f"otwarte zadania: {tasks}",
+            f"przypomnienia: {reminders}",
+            f"automatyzacje: {len(automations.enabled())}",
+            f"narzędzia: {len(registry.all())}",
+        ]
+        return "Status agenta:\n" + "\n".join(lines)
+
     telegram: TelegramGateway | None = None
     token = settings.telegram_bot_token or vault.get("telegram_bot_token") or ""
     owner_id = settings.telegram_owner_id or int(
@@ -82,6 +105,8 @@ def build_app() -> FastAPI:
             on_claim=lambda chat_id: vault.set("telegram_owner_id", str(chat_id)),
             registry=registry,
             permissions=permissions,
+            flags=flags,
+            status_fn=status_text,
         )
 
     async def notify(text: str, meta: dict | None = None) -> None:
@@ -127,7 +152,10 @@ def build_app() -> FastAPI:
         skills_dir=skills_dir(settings.data_dir),
         memory=Memory(settings.db_path),
         conversation=Conversation(settings.db_path),
+        flags=flags,
     )
+    # key used by voice transcription fallback
+    loop._openai_key = settings.openai_api_key or vault.get("openai_api_key") or ""
 
     async def reminder_worker() -> None:
         """Fires due reminders — the agent speaks up on its own."""
@@ -137,6 +165,8 @@ def build_app() -> FastAPI:
 
         while True:
             await asyncio.sleep(10)
+            if flags.get_bool("paused"):
+                continue
             now = datetime.now(timezone.utc).isoformat()
             with open_db(settings.db_path) as conn:
                 due = conn.execute(
