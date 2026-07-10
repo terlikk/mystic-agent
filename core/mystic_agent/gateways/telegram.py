@@ -3,6 +3,7 @@ back as messages with inline Approve/Reject buttons.
 """
 
 import logging
+from typing import Callable
 
 from telegram import (
     InlineKeyboardButton,
@@ -30,10 +31,12 @@ class TelegramGateway:
         owner_id: int,
         bus: EventBus,
         inbox: DecisionInbox,
+        on_claim: Callable[[int], None] | None = None,
     ) -> None:
         self._owner_id = owner_id
         self._bus = bus
         self._inbox = inbox
+        self._on_claim = on_claim
         self._app = Application.builder().token(token).build()
         self._app.add_handler(
             MessageHandler(filters.TEXT & ~filters.COMMAND, self._on_message)
@@ -55,6 +58,8 @@ class TelegramGateway:
         # owner_id == 0 → first chat wins (onboarding); otherwise strict match
         if self._owner_id == 0:
             self._owner_id = chat_id
+            if self._on_claim is not None:
+                self._on_claim(chat_id)  # persist — survives restarts
             log.info("locked to owner chat id %s", chat_id)
             return True
         return chat_id == self._owner_id

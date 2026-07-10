@@ -19,10 +19,19 @@ log = logging.getLogger(__name__)
 
 Notifier = Callable[[str, dict[str, Any] | None], Awaitable[None]]
 
-SYSTEM_PROMPT = f"""Jesteś {NAME} — osobistym, self-hosted asystentem AI \
+BASE_PROMPT = f"""Jesteś {NAME} — osobistym, self-hosted asystentem AI \
 użytkownika. Działasz na jego komputerze, komunikujesz się po polsku, \
 krótko i konkretnie. Gdy zadanie pasuje do któregoś z narzędzi, użyj go. \
 Gdy nie — odpowiedz tekstem. Nigdy nie zmyślaj wyników narzędzi."""
+
+
+def build_system_prompt(persona: str = "", user_name: str = "") -> str:
+    parts = [BASE_PROMPT]
+    if persona:
+        parts.append(persona)
+    if user_name:
+        parts.append(f"Do użytkownika zwracaj się: {user_name}.")
+    return "\n\n".join(parts)
 
 MAX_STEPS = 6  # hard cap per event: decide→act→observe iterations
 
@@ -37,7 +46,9 @@ class AgentLoop:
         inbox: DecisionInbox,
         audit: AuditLog,
         notify: Notifier,
+        system_prompt: str | None = None,
     ) -> None:
+        self.system_prompt = system_prompt or build_system_prompt()
         self.bus = bus
         self.provider = provider
         self.tools = tools
@@ -80,7 +91,7 @@ class AgentLoop:
         messages: list[dict[str, Any]] = [{"role": "user", "content": user_text}]
         for _ in range(MAX_STEPS):
             reply = await self.provider.chat(
-                SYSTEM_PROMPT, messages, self.tools.specs()
+                self.system_prompt, messages, self.tools.specs()
             )
             if not reply.tool_calls:
                 if reply.text:

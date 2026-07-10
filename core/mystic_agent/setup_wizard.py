@@ -108,4 +108,20 @@ def run_wizard(force: bool = False) -> None:
                 "  [yellow]•[/] pominięto — bez telegrama zostaje samo API"
             )
 
+    # ── Osobowość ────────────────────────────────────────────────
+    if force or not vault.get("persona_key"):
+        from .personas import select_persona
+
+        key, prompt = select_persona(console)
+        vault.set("persona_key", key)
+        vault.set("persona_prompt", prompt)
+        name = Prompt.ask(
+            "[bold #2563eb]Jak agent ma się do Ciebie zwracać?[/] "
+            "(enter = bez imienia)",
+            default="",
+            show_default=False,
+        ).strip()
+        if name:
+            vault.set("user_name", name)
+
     console.print()

@@ -44,7 +44,13 @@ def build_app() -> FastAPI:
         vault.get("telegram_owner_id") or 0
     )
     if token:
-        telegram = TelegramGateway(token, owner_id, bus, inbox)
+        telegram = TelegramGateway(
+            token,
+            owner_id,
+            bus,
+            inbox,
+            on_claim=lambda chat_id: vault.set("telegram_owner_id", str(chat_id)),
+        )
 
     async def notify(text: str, meta: dict | None = None) -> None:
         if telegram is not None:
@@ -58,7 +64,16 @@ def build_app() -> FastAPI:
         settings.anthropic_api_key or vault.get("anthropic_api_key") or "",
         settings.openai_api_key or vault.get("openai_api_key") or "",
     )
-    loop = AgentLoop(bus, provider, registry, permissions, inbox, audit, notify)
+    from .agent import build_system_prompt
+
+    system_prompt = build_system_prompt(
+        persona=vault.get("persona_prompt") or "",
+        user_name=vault.get("user_name") or "",
+    )
+    loop = AgentLoop(
+        bus, provider, registry, permissions, inbox, audit, notify,
+        system_prompt=system_prompt,
+    )
 
     async def reminder_worker() -> None:
         """Fires due reminders — the agent speaks up on its own."""

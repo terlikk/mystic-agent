@@ -62,6 +62,22 @@ def reset() -> None:
 
 
 @main.command()
+def persona() -> None:
+    """Zmień osobowość agenta (działa od następnego startu)."""
+    from rich.console import Console
+
+    from .personas import select_persona
+    from .setup_wizard import _vault
+
+    vault = _vault()
+    console = Console()
+    key, prompt_text = select_persona(console)
+    vault.set("persona_key", key)
+    vault.set("persona_prompt", prompt_text)
+    console.print("Zrestartuj agenta, żeby zmiana weszła w życie.")
+
+
+@main.command()
 def setup() -> None:
     """Skonfiguruj klucze od nowa (klucz LLM, telegram) — trafiają do sejfu."""
     from .setup_wizard import run_wizard
