@@ -31,10 +31,13 @@ fi
 say "✓ python: $($PY --version 2>&1)"
 
 # 2. venv + install from the repo (core/ subdirectory)
+# --no-cache-dir + --upgrade --force-reinstall: always build the latest
+# source, never serve a stale wheel cached under the same version.
 say "→ instaluję do $VENV …"
 "$PY" -m venv "$VENV"
 "$VENV/bin/pip" install --quiet --upgrade pip
-"$VENV/bin/pip" install --quiet "mystic-agent @ git+$REPO#subdirectory=core"
+"$VENV/bin/pip" install --quiet --upgrade --force-reinstall --no-cache-dir \
+    "mystic-agent @ git+$REPO#subdirectory=core"
 
 # 3. link the CLI
 mkdir -p "$BIN_DIR"
