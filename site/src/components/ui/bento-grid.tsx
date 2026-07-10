@@ -24,7 +24,7 @@ const BentoGrid = ({ children, className, ...props }: BentoGridProps) => {
   return (
     <div
       className={cn(
-        "grid w-full auto-rows-[24rem] grid-cols-3 gap-4",
+        "grid w-full auto-rows-[24rem] grid-cols-3 gap-5",
         className
       )}
       {...props}
@@ -48,27 +48,24 @@ const BentoCard = ({
   <div
     key={name}
     className={cn(
-      "group relative col-span-3 flex flex-col justify-between overflow-hidden rounded-lg",
-      "border border-line bg-panel transition-colors duration-300 hover:border-cyan/30",
+      "group relative col-span-3 flex flex-col justify-between overflow-hidden rounded-3xl bg-fill",
       className
     )}
     {...props}
   >
     <div className="min-h-0 flex-1">{background}</div>
-    <div className="p-5">
+    <div className="p-6 sm:p-7">
       <div className="flex transform-gpu flex-col gap-1.5">
         {eyebrow && (
-          <span className="font-mono text-[10px] tracking-[0.2em] text-cyan uppercase">
-            {eyebrow}
-          </span>
+          <span className="text-xs font-semibold text-blue">{eyebrow}</span>
         )}
         {Icon && (
-          <Icon className="h-10 w-10 origin-left transform-gpu text-cyan transition-all duration-300 ease-in-out group-hover:scale-90" />
+          <Icon className="h-10 w-10 origin-left transform-gpu text-blue transition-all duration-300 ease-in-out group-hover:scale-90" />
         )}
-        <h3 className="font-heading text-xl font-bold text-foreground">
+        <h3 className="text-xl font-semibold tracking-tight text-ink">
           {name}
         </h3>
-        <p className="max-w-lg text-sm leading-relaxed text-dim">
+        <p className="max-w-lg text-sm leading-relaxed text-ink-2">
           {description}
         </p>
       </div>
@@ -79,7 +76,7 @@ const BentoCard = ({
             variant="link"
             asChild
             size="sm"
-            className="pointer-events-auto p-0 text-cyan"
+            className="pointer-events-auto p-0 text-blue"
           >
             <a href={href}>
               {cta}
@@ -89,8 +86,6 @@ const BentoCard = ({
         </div>
       )}
     </div>
-
-    <div className="pointer-events-none absolute inset-0 transform-gpu transition-all duration-300 group-hover:bg-cyan/[0.02]" />
   </div>
 )
 

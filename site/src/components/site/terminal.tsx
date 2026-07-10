@@ -1,10 +1,20 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { animate, createTimeline, stagger } from "animejs";
+import { createTimeline, stagger } from "animejs";
 import { ASCII_BANNER, PROJECT } from "@/config/site";
 
 const BOOT_CMD = `${PROJECT.cli} start`;
+
+/* Per-line blue→violet gradient. Solid colors per line instead of
+   background-clip:text, which Chromium drops on animated descendants. */
+function bannerColor(i: number, total: number) {
+  const t = total <= 1 ? 0 : i / (total - 1);
+  const from = [0x25, 0x63, 0xeb]; // #2563eb
+  const to = [0x7c, 0x3a, 0xed]; // #7c3aed
+  const c = from.map((f, k) => Math.round(f + (to[k] - f) * t));
+  return `rgb(${c[0]}, ${c[1]}, ${c[2]})`;
+}
 
 const NEOFETCH_ROWS: [string, string][] = [
   ["DESIGNATION", `${PROJECT.name} ${PROJECT.version}`],
@@ -100,36 +110,41 @@ export function Terminal() {
   return (
     <div
       ref={rootRef}
-      className="glow-box overflow-hidden rounded-lg border border-line bg-panel font-mono text-[13px] leading-relaxed"
+      className="overflow-hidden rounded-2xl bg-term font-mono text-[13px] leading-relaxed shadow-[0_24px_70px_-20px_rgba(29,29,31,0.45)]"
       aria-label={`Podgląd terminala: agent ${PROJECT.name} startuje i wyświetla status`}
     >
-      {/* window chrome */}
-      <div className="flex items-center gap-2 border-b border-line bg-panel-2 px-4 py-2.5">
-        <span className="size-2.5 rounded-full bg-[#2a3548]" />
-        <span className="size-2.5 rounded-full bg-[#2a3548]" />
-        <span className="size-2.5 rounded-full bg-[#2a3548]" />
-        <span className="ml-3 text-xs text-dim">
+      {/* macOS window chrome */}
+      <div className="flex items-center gap-2 border-b border-white/8 bg-white/4 px-4 py-3">
+        <span className="size-3 rounded-full bg-[#ff5f57]" />
+        <span className="size-3 rounded-full bg-[#febc2e]" />
+        <span className="size-3 rounded-full bg-[#28c840]" />
+        <span className="ml-3 text-xs text-white/40">
           {PROJECT.cli} — sesja lokalna
         </span>
-        <span className="ml-auto flex items-center gap-1.5 text-[10px] tracking-widest text-amber uppercase">
-          <span className="pulse-amber size-1.5 rounded-full bg-amber" />
+        <span className="ml-auto flex items-center gap-1.5 text-[10px] tracking-widest text-white/50 uppercase">
+          <span className="pulse-soft size-1.5 rounded-full bg-violet" />
           w budowie
         </span>
       </div>
 
-      <div className="space-y-3 px-4 py-4 sm:px-5">
-        <p className="text-foreground">
-          <span className="text-cyan">$ </span>
+      <div className="space-y-3 px-4 py-4 sm:px-6 sm:py-5">
+        <p className="text-white/90">
+          <span className="text-[#7aa5ff]">$ </span>
           <span ref={cmdRef} aria-hidden="true" />
-          <span className="cursor-blink text-cyan">▊</span>
+          <span className="cursor-blink text-[#a78bfa]">▊</span>
         </p>
 
         <pre
-          className="glow-cyan overflow-x-auto text-cyan"
-          style={{ fontSize: "clamp(6px, 1.7vw, 10px)", lineHeight: 1.25 }}
+          className="overflow-x-auto font-bold"
+          style={{ fontSize: "clamp(7px, 2vw, 11px)", lineHeight: 1.3 }}
         >
           {ASCII_BANNER.map((line, i) => (
-            <span key={i} data-banner className="block will-change-transform">
+            <span
+              key={i}
+              data-banner
+              className="block"
+              style={{ color: bannerColor(i, ASCII_BANNER.length) }}
+            >
               {line}
             </span>
           ))}
@@ -138,33 +153,37 @@ export function Terminal() {
         <div className="space-y-1 pt-1">
           {NEOFETCH_ROWS.map(([k, v]) => (
             <p key={k} data-row className="will-change-transform">
-              <span className="inline-block w-[7.5rem] text-cyan">{k}</span>
-              <span className="text-foreground/90">{v}</span>
+              <span className="inline-block w-[7.5rem] text-[#7aa5ff]">
+                {k}
+              </span>
+              <span className="text-white/80">{v}</span>
             </p>
           ))}
           <p data-row className="will-change-transform">
-            <span className="inline-block w-[7.5rem] text-cyan">LICENSE</span>
-            <span className="text-foreground/90">MIT · open source</span>
+            <span className="inline-block w-[7.5rem] text-[#7aa5ff]">
+              LICENSE
+            </span>
+            <span className="text-white/80">MIT · open source</span>
           </p>
         </div>
 
-        <p data-status className="text-amber">
-          ⚠ {PROJECT.version} — projekt w budowie, obserwuj repo
+        <p data-status className="text-[#a78bfa]">
+          ● {PROJECT.version} — projekt w budowie, obserwuj repo
         </p>
 
-        <p data-prompt className="text-dim">
-          <span className="text-cyan">$ </span>czekam na zdarzenia…
+        <p data-prompt className="text-white/40">
+          <span className="text-[#7aa5ff]">$ </span>czekam na zdarzenia…
         </p>
       </div>
     </div>
   );
 }
 
-/** Small typed-command line used elsewhere on the page. */
+/** Small dark command chip used elsewhere on the page. */
 export function CommandLine({ command }: { command: string }) {
   return (
-    <code className="block overflow-x-auto rounded-md border border-line bg-panel px-4 py-3 font-mono text-xs text-foreground/90">
-      <span className="text-cyan">$ </span>
+    <code className="block overflow-x-auto rounded-xl bg-term px-4 py-3 font-mono text-xs break-all text-white/85">
+      <span className="text-[#7aa5ff]">$ </span>
       {command}
     </code>
   );

@@ -2,15 +2,14 @@
 
 import { useEffect, useRef } from "react";
 import { animate, stagger } from "animejs";
-import { FlickeringGrid } from "@/components/ui/flickering-grid";
 import { Terminal } from "@/components/site/terminal";
 import { PROJECT } from "@/config/site";
 
 export function Hero() {
-  const copyRef = useRef<HTMLDivElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const root = copyRef.current;
+    const root = rootRef.current;
     if (!root) return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
@@ -18,89 +17,69 @@ export function Hero() {
     items.forEach((el) => (el.style.opacity = "0"));
     animate(items, {
       opacity: [0, 1],
-      translateY: [22, 0],
-      duration: 850,
-      delay: stagger(110, { start: 120 }),
+      translateY: [24, 0],
+      duration: 900,
+      delay: stagger(120, { start: 100 }),
       ease: "outExpo",
     });
   }, []);
 
   return (
-    <section className="relative overflow-hidden pt-14">
-      {/* ambient pixel grid, masked to the top — quiet, not a light show */}
+    <section className="pt-14">
       <div
-        className="pointer-events-none absolute inset-0"
-        style={{
-          maskImage:
-            "radial-gradient(ellipse 90% 70% at 70% 10%, black 30%, transparent 75%)",
-          WebkitMaskImage:
-            "radial-gradient(ellipse 90% 70% at 70% 10%, black 30%, transparent 75%)",
-        }}
-        aria-hidden="true"
+        ref={rootRef}
+        className="mx-auto flex max-w-4xl flex-col items-center px-4 pt-16 pb-20 text-center sm:px-6 sm:pt-24 sm:pb-28"
       >
-        <FlickeringGrid
-          className="size-full"
-          squareSize={3}
-          gridGap={9}
-          color="#22D3EE"
-          maxOpacity={0.14}
-          flickerChance={0.12}
-        />
-      </div>
+        <p
+          data-hero-item
+          className="flex items-center gap-2 rounded-full bg-fill px-4 py-1.5 text-xs font-medium text-ink-2"
+        >
+          <span className="pulse-soft size-1.5 rounded-full bg-violet" />
+          Open source · Self-hosted · W budowie
+        </p>
 
-      <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-4 py-16 sm:px-6 sm:py-24 lg:grid-cols-[1.05fr_1fr] lg:gap-14">
-        <div ref={copyRef}>
-          <p
-            data-hero-item
-            className="font-mono text-xs tracking-wide text-cyan"
+        <h1
+          data-hero-item
+          className="mt-8 text-5xl leading-[1.05] font-semibold tracking-tight text-balance sm:text-6xl lg:text-7xl"
+        >
+          Twój Jarvis. Twój serwer.
+          <br />
+          <span className="text-gradient">Twoje zasady.</span>
+        </h1>
+
+        <p
+          data-hero-item
+          className="mt-6 max-w-2xl text-lg leading-relaxed text-ink-2 sm:text-xl"
+        >
+          {PROJECT.name} to agent AI, który mieszka na Twoim komputerze —
+          ogarnia maile, kalendarz i codzienne sprawy, a o każdą ważną decyzję
+          pyta Ciebie. Twoje dane nigdy nie opuszczają Twojego sprzętu.
+        </p>
+
+        <div data-hero-item className="mt-9 flex flex-wrap items-center justify-center gap-5">
+          <a
+            href={PROJECT.repoUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="rounded-full bg-blue px-6 py-3 text-sm font-medium text-white transition-all hover:bg-blue-soft hover:shadow-[0_8px_24px_-8px_rgba(29,78,216,0.5)] active:scale-[0.98]"
           >
-            {"// open source · self-hosted · MIT"}
-          </p>
-
-          <h1
-            data-hero-item
-            className="mt-5 font-heading text-4xl leading-[1.08] font-bold tracking-tight text-balance sm:text-5xl lg:text-6xl"
+            Zobacz na GitHubie
+          </a>
+          <a
+            href="#filary"
+            className="text-sm font-medium text-blue transition-colors hover:text-violet"
           >
-            Twój Jarvis.
-            <br />
-            Twój serwer.
-            <br />
-            <span className="glow-cyan text-cyan">Twoje zasady.</span>
-          </h1>
-
-          <p
-            data-hero-item
-            className="mt-6 max-w-xl text-base leading-relaxed text-dim sm:text-lg"
-          >
-            {PROJECT.name} to agent AI, który mieszka na Twoim komputerze —
-            ogarnia maile, kalendarz i codzienne sprawy, a o każdą ważną
-            decyzję pyta Ciebie. Twoje dane i klucze nigdy nie opuszczają
-            Twojego sprzętu.
-          </p>
-
-          <div data-hero-item className="mt-8 flex flex-wrap items-center gap-4">
-            <a
-              href={PROJECT.repoUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="rounded-md bg-cyan px-5 py-3 font-mono text-sm font-medium text-[#06222a] shadow-[0_0_24px_rgba(34,211,238,0.35)] transition-transform hover:scale-[1.03] active:scale-[0.98]"
-            >
-              Zobacz na GitHubie ↗
-            </a>
-            <a
-              href="#filary"
-              className="rounded-md border border-line px-5 py-3 font-mono text-sm text-foreground/80 transition-colors hover:border-cyan/50 hover:text-cyan"
-            >
-              Jak to działa ↓
-            </a>
-          </div>
-
-          <p data-hero-item className="mt-5 font-mono text-xs text-dim">
-            instalacja jedną komendą — wkrótce
-          </p>
+            Jak to działa <span aria-hidden="true">↓</span>
+          </a>
         </div>
 
-        <Terminal />
+        <div data-hero-item className="mt-14 w-full max-w-2xl text-left">
+          <Terminal />
+        </div>
+
+        <p data-hero-item className="mt-6 text-xs text-ink-2">
+          instalacja jedną komendą — wkrótce
+        </p>
       </div>
     </section>
   );

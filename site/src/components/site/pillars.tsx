@@ -7,40 +7,36 @@ import { CommandLine } from "@/components/site/terminal";
 import { Reveal } from "@/components/site/reveal";
 import { PROJECT } from "@/config/site";
 
-/* ── permission slider demo ─────────────────────────────────────── */
+/* ── permission control demo (iOS segmented control style) ─────── */
 
 const LEVELS = [
   {
     key: "off",
     label: "Wyłączone",
-    message: "agent śpi — nie zrobi nic bez Twojej zgody",
-    tone: "text-dim",
-    prefix: "·",
+    message: "Agent śpi — nie zrobi nic bez Twojej zgody.",
+    dot: "bg-hairline",
   },
   {
     key: "propose",
     label: "Proponuje",
-    message: "mail od klienta → proponuję odpowiedź  [Zatwierdź] [Odrzuć]",
-    tone: "text-amber",
-    prefix: "?",
+    message: "Mail od klienta: proponuję odpowiedź — Zatwierdź / Odrzuć.",
+    dot: "bg-violet",
   },
   {
     key: "act_report",
-    label: "Robi i raportuje",
-    message: "odpisałem na 3 rutynowe maile — raport w audycie",
-    tone: "text-ok",
-    prefix: "✓",
+    label: "Robi + raport",
+    message: "Odpisałem na 3 rutynowe maile. Raport czeka w audycie.",
+    dot: "bg-blue",
   },
   {
     key: "act_silent",
     label: "Robi cicho",
-    message: "zrobione. szczegóły zawsze w audycie.",
-    tone: "text-ok",
-    prefix: "✓",
+    message: "Zrobione. Szczegóły zawsze znajdziesz w audycie.",
+    dot: "bg-blue",
   },
 ] as const;
 
-function PermissionSliderDemo() {
+function PermissionControlDemo() {
   const [level, setLevel] = useState(1);
   const msgRef = useRef<HTMLParagraphElement>(null);
 
@@ -62,54 +58,32 @@ function PermissionSliderDemo() {
   const current = LEVELS[level];
 
   return (
-    <div className="flex h-full flex-col justify-center gap-4 px-5 pt-5">
+    <div className="flex h-full flex-col justify-center gap-4 px-6 pt-6 sm:px-7">
       <div
         role="radiogroup"
         aria-label="Poziom uprawnień umiejętności"
-        className="relative flex items-center justify-between"
+        className="flex rounded-full bg-fill-2 p-1"
       >
-        {/* track */}
-        <span
-          className="absolute inset-x-2 top-1/2 h-px -translate-y-1/2 bg-line"
-          aria-hidden="true"
-        />
-        <span
-          className="absolute left-2 top-1/2 h-px -translate-y-1/2 bg-cyan transition-all duration-300"
-          style={{ width: `calc(${(level / (LEVELS.length - 1)) * 100}% - 1rem)` }}
-          aria-hidden="true"
-        />
         {LEVELS.map((l, i) => (
           <button
             key={l.key}
             role="radio"
             aria-checked={level === i}
-            aria-label={l.label}
             onClick={() => select(i)}
-            className="relative z-10 flex flex-col items-center gap-2 px-1 py-2"
+            className={`flex-1 rounded-full px-1 py-2 text-[11px] font-medium transition-all duration-300 sm:text-xs ${
+              level === i
+                ? "bg-white text-ink shadow-sm"
+                : "text-ink-2 hover:text-ink"
+            }`}
           >
-            <span
-              className={`size-3.5 rounded-full border-2 transition-all duration-300 ${
-                level === i
-                  ? "border-cyan bg-cyan shadow-[0_0_12px_rgba(34,211,238,0.6)]"
-                  : i < level
-                    ? "border-cyan/60 bg-panel"
-                    : "border-line bg-panel"
-              }`}
-            />
-            <span
-              className={`font-mono text-[9px] tracking-wide uppercase transition-colors sm:text-[10px] ${
-                level === i ? "text-cyan" : "text-dim"
-              }`}
-            >
-              {l.label}
-            </span>
+            {l.label}
           </button>
         ))}
       </div>
 
-      <div className="rounded-md border border-line bg-background/60 px-4 py-3 font-mono text-xs">
-        <p ref={msgRef} className={current.tone}>
-          <span className="mr-2">{current.prefix}</span>
+      <div className="rounded-2xl bg-white px-5 py-4 shadow-sm">
+        <p ref={msgRef} className="flex items-center gap-3 text-sm text-ink">
+          <span className={`size-2 shrink-0 rounded-full ${current.dot}`} />
           {current.message}
         </p>
       </div>
@@ -120,11 +94,11 @@ function PermissionSliderDemo() {
 /* ── proactive event feed ───────────────────────────────────────── */
 
 const EVENTS = [
-  { t: "08:12", text: "nowy mail od księgowej → wygląda pilnie, eskaluję", tone: "text-amber" },
-  { t: "11:40", text: "cena monitorowanej karty spadła 12% → alert", tone: "text-cyan" },
-  { t: "14:05", text: "deploy na serwerze padł → restart + raport", tone: "text-ok" },
-  { t: "18:00", text: "cron: raport dnia → wysłany na telegrama", tone: "text-ok" },
-  { t: "02:31", text: "certyfikat TLS wygasa za 7 dni → proponuję odnowienie", tone: "text-amber" },
+  { t: "08:12", text: "Pilny mail od księgowej — eskaluję do Ciebie", dot: "bg-violet" },
+  { t: "11:40", text: "Cena monitorowanej karty spadła 12% — alert", dot: "bg-blue" },
+  { t: "14:05", text: "Serwer nie odpowiadał — restart i raport", dot: "bg-blue" },
+  { t: "18:00", text: "Raport dnia wysłany na telegrama", dot: "bg-blue" },
+  { t: "02:31", text: "Certyfikat TLS wygasa za 7 dni — proponuję odnowienie", dot: "bg-violet" },
 ] as const;
 
 function EventFeed() {
@@ -155,51 +129,56 @@ function EventFeed() {
   }, [visible]);
 
   return (
-    <ul
-      ref={listRef}
-      className="flex h-full flex-col justify-end gap-2 px-5 pt-5 font-mono text-[11px] leading-relaxed"
-    >
-      {EVENTS.slice(0, visible).map((e) => (
-        <li key={e.t} className="flex gap-3">
-          <span className="shrink-0 text-dim">{e.t}</span>
-          <span className={e.tone}>{e.text}</span>
+    <div className="relative h-full overflow-hidden">
+      <div
+        className="pointer-events-none absolute inset-x-0 top-0 z-10 h-10 bg-gradient-to-b from-fill to-transparent"
+        aria-hidden="true"
+      />
+      <ul
+        ref={listRef}
+        className="flex h-full flex-col justify-end gap-2 px-6 pt-6 sm:px-7"
+      >
+        {EVENTS.slice(0, visible).map((e) => (
+        <li
+          key={e.t}
+          className="flex items-center gap-3 rounded-xl bg-white px-4 py-2.5 text-xs text-ink shadow-sm"
+        >
+          <span className={`size-1.5 shrink-0 rounded-full ${e.dot}`} />
+          <span className="flex-1">{e.text}</span>
+          <span className="shrink-0 text-[10px] text-ink-2">{e.t}</span>
         </li>
-      ))}
-    </ul>
+        ))}
+      </ul>
+    </div>
   );
 }
 
 /* ── tool forge pipeline ────────────────────────────────────────── */
 
 const FORGE_STEPS = [
-  { n: "01", text: "pisze kod nowego narzędzia", state: "done" },
-  { n: "02", text: "testuje w sandboxie — bez dostępu do sejfu", state: "done" },
-  { n: "03", text: "pyta Cię o zgodę (telegram / dashboard)", state: "active" },
-  { n: "04", text: "rejestruje skill na stałe", state: "todo" },
+  { n: 1, text: "Pisze kod nowego narzędzia", state: "done" },
+  { n: 2, text: "Testuje w sandboxie — bez dostępu do sejfu", state: "done" },
+  { n: 3, text: "Pyta Cię o zgodę", state: "active" },
+  { n: 4, text: "Rejestruje skill na stałe", state: "todo" },
 ] as const;
 
 function ForgePipeline() {
   return (
-    <ol className="flex h-full flex-col justify-center gap-2.5 px-5 pt-5 font-mono text-[11px]">
+    <ol className="flex h-full flex-col justify-center gap-3 px-6 pt-6 sm:px-7">
       {FORGE_STEPS.map((s) => (
-        <li key={s.n} className="flex items-center gap-3">
+        <li key={s.n} className="flex items-center gap-3 text-sm">
           <span
-            className={
+            className={`flex size-6 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold ${
               s.state === "done"
-                ? "text-ok"
+                ? "bg-blue text-white"
                 : s.state === "active"
-                  ? "pulse-amber text-amber"
-                  : "text-dim"
-            }
+                  ? "pulse-soft bg-violet text-white"
+                  : "bg-fill-2 text-ink-2"
+            }`}
           >
-            {s.state === "done" ? "✓" : s.state === "active" ? "▸" : "○"}
+            {s.state === "done" ? "✓" : s.n}
           </span>
-          <span className="text-dim">{s.n}</span>
-          <span
-            className={
-              s.state === "todo" ? "text-dim" : "text-foreground/85"
-            }
-          >
+          <span className={s.state === "todo" ? "text-ink-2" : "text-ink"}>
             {s.text}
           </span>
         </li>
@@ -212,10 +191,10 @@ function ForgePipeline() {
 
 function InstallDemo() {
   return (
-    <div className="flex h-full flex-col justify-center gap-3 px-5 pt-5">
+    <div className="flex h-full flex-col justify-center gap-3 px-6 pt-6 sm:px-7">
       <CommandLine command={PROJECT.installCmd} />
-      <p className="font-mono text-[11px] text-dim">
-        …a potem wszystko klikasz w dashboardzie. zero YAML-a.
+      <p className="text-xs text-ink-2">
+        …a potem wszystko klikasz w dashboardzie. Zero YAML-a.
       </p>
     </div>
   );
@@ -225,45 +204,46 @@ function InstallDemo() {
 
 export function Pillars() {
   return (
-    <section id="filary" className="hairline-top scroll-mt-14">
-      <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 sm:py-28">
-        <Reveal>
-          <p className="font-mono text-xs tracking-wide text-cyan">
-            {"// czym się różni"}
-          </p>
-          <h2 className="mt-3 max-w-2xl font-heading text-3xl font-bold tracking-tight text-balance sm:text-4xl">
-            Autonomia bez utraty kontroli
+    <section id="filary" className="scroll-mt-14">
+      <div className="mx-auto max-w-5xl px-4 py-20 sm:px-6 sm:py-28">
+        <Reveal className="text-center">
+          <h2 className="text-3xl font-semibold tracking-tight text-balance sm:text-5xl">
+            Autonomia bez utraty kontroli.
           </h2>
+          <p className="mx-auto mt-4 max-w-xl text-base text-ink-2 sm:text-lg">
+            Cztery rzeczy, które odróżniają {PROJECT.name} od frameworków do
+            składania samemu.
+          </p>
         </Reveal>
 
-        <Reveal delay={120} className="mt-10">
+        <Reveal delay={120} className="mt-12">
           <BentoGrid className="lg:grid-cols-3">
             <BentoCard
               name="Suwak uprawnień na każdej umiejętności"
               className="lg:col-span-2"
-              eyebrow="kontrola i zaufanie"
-              description="Od pełnej ciszy po pełną autonomię — Ty decydujesz, ile agent może. Propozycje czekają w skrzynce decyzji, a każde działanie ląduje w audycie. Przesuń sam:"
-              background={<PermissionSliderDemo />}
+              eyebrow="Kontrola i zaufanie"
+              description="Od pełnej ciszy po pełną autonomię — Ty decydujesz, ile agent może. Propozycje czekają w skrzynce decyzji, a każde działanie ląduje w audycie. Wypróbuj:"
+              background={<PermissionControlDemo />}
             />
             <BentoCard
               name="Produkt, nie framework"
               className="lg:col-span-1"
-              eyebrow="instalacja"
-              description="Jedna komenda w terminalu, reszta w ładnym web dashboardzie. Bez plików konfiguracyjnych."
+              eyebrow="Instalacja"
+              description="Jedna komenda w terminalu, reszta w przejrzystym dashboardzie."
               background={<InstallDemo />}
             />
             <BentoCard
               name="Sam zauważa, sam się odzywa"
               className="lg:col-span-1"
-              eyebrow="proaktywność"
-              description="Agent żyje na strumieniu zdarzeń — mail, cron, spadek ceny — i reaguje, zanim zdążysz zapytać."
+              eyebrow="Proaktywność"
+              description="Agent żyje na strumieniu zdarzeń i reaguje, zanim zdążysz zapytać."
               background={<EventFeed />}
             />
             <BentoCard
               name="Kuźnia narzędzi"
               className="lg:col-span-2"
-              eyebrow="samorozbudowa"
-              description="Gdy czegoś nie umie, pisze sobie nowe narzędzie: kod, test w sandboxie, Twoja zgoda, rejestracja. Skille to wykonywalny, przetestowany kod — nie notatki."
+              eyebrow="Samorozbudowa"
+              description="Gdy czegoś nie umie, pisze sobie nowe narzędzie: kod, test w sandboxie, Twoja zgoda, rejestracja. Skille to przetestowany kod — nie notatki."
               background={<ForgePipeline />}
             />
           </BentoGrid>
