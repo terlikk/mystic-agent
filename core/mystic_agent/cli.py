@@ -27,17 +27,19 @@ def start(host: str | None, port: int | None) -> None:
     if port:
         settings.port = port
 
+    import sys
+
     from .server import build_app
     from .setup_wizard import is_configured, run_wizard
-    from .splash import print_splash
+    from .splash import print_banner, print_status
 
-    import sys
+    print_banner()  # the block wordmark, first thing after launch
 
     if not is_configured() and sys.stdin.isatty():
         run_wizard()
 
     app = build_app()
-    print_splash(
+    print_status(
         telegram_on=app.state.telegram_on,
         model=app.state.model,
         tool_count=app.state.tool_count,

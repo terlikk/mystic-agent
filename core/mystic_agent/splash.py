@@ -1,4 +1,6 @@
-"""The CLI splash: pixel banner + neofetch-style status table."""
+"""CLI visuals: the pixel banner (shown first) and the neofetch status
+table (shown once the agent is up).
+"""
 
 from rich.console import Console
 from rich.table import Table
@@ -12,18 +14,33 @@ from .config import settings
 _GRADIENT = ["#2563eb", "#3b5aec", "#5150ed", "#6747ed", "#7c3aed"]
 
 
-def print_splash(telegram_on: bool, model: str, tool_count: int) -> None:
-    console = Console()
+def _shade(i: int, total: int) -> str:
+    if total <= 1:
+        return _GRADIENT[0]
+    return _GRADIENT[min(int(i / (total - 1) * (len(_GRADIENT) - 1)), len(_GRADIENT) - 1)]
+
+
+def print_banner(console: Console | None = None) -> None:
+    console = console or Console()
     console.print()
     for i, line in enumerate(BANNER):
-        shade = _GRADIENT[min(i % 5, len(_GRADIENT) - 1)] if i < 5 else _GRADIENT[
-            min(i - 5, len(_GRADIENT) - 1)
-        ]
-        console.print(Text(line, style=f"bold {shade}"))
+        console.print(Text("  " + line, style=f"bold {_shade(i, len(BANNER))}"))
+    console.print()
+    console.print(
+        Text(f"  {NAME}", style="bold #e7edf5"),
+        Text("· Twój Jarvis. Twój serwer. Twoje zasady.", style="dim"),
+    )
+    console.print()
+
+
+def print_status(
+    telegram_on: bool, model: str, tool_count: int, console: Console | None = None
+) -> None:
+    console = console or Console()
     console.print()
 
     table = Table(show_header=False, box=None, padding=(0, 2))
-    table.add_column(style="bold #2563eb")
+    table.add_column(style="bold #22d3ee")
     table.add_column(style="white")
     table.add_row("DESIGNATION", f"{NAME} v{__version__}")
     table.add_row("RUNTIME", f"http://{settings.host}:{settings.port}")
@@ -45,10 +62,6 @@ def print_splash(telegram_on: bool, model: str, tool_count: int) -> None:
         Text("    tylko na tej maszynie — Twój agent, Twój panel", style="dim")
     )
     console.print()
-    console.print(
-        Text(f"● w budowie — {REPO_URL}", style="#7c3aed"),
-    )
-    console.print(
-        Text(f"$ {CLI_NAME} czeka na zdarzenia…", style="dim"),
-    )
+    console.print(Text(f"● w budowie — {REPO_URL}", style="#7c3aed"))
+    console.print(Text(f"$ {CLI_NAME} czeka na zdarzenia…", style="dim"))
     console.print()

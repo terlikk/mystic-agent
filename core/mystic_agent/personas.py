@@ -5,8 +5,6 @@ injected into the system prompt. `mystic-agent persona` changes it anytime.
 from dataclasses import dataclass
 
 from rich.console import Console
-from rich.panel import Panel
-from rich.prompt import Prompt
 
 
 @dataclass(frozen=True)
@@ -22,7 +20,7 @@ PERSONAS: list[Persona] = [
     Persona(
         key="jarvis",
         name="Jarvis",
-        tagline="klasyk — spokojny, nienagannie uprzejmy, sucha elegancja kamerdynera",
+        tagline="klasyk — spokojny, nienagannie uprzejmy, sucha elegancja",
         sample="Oczywiście. Kalendarz uporządkowany, trzy konflikty rozwiązane. Coś jeszcze?",
         prompt=(
             "Osobowość: klasyczny Jarvis. Jesteś spokojny, rzeczowy i nienagannie "
@@ -55,7 +53,7 @@ PERSONAS: list[Persona] = [
     Persona(
         key="mag",
         name="Mag",
-        tagline="strażnik tajemnej wiedzy — klimatycznie, ale konkret na końcu",
+        tagline="strażnik tajemnej wiedzy — klimatycznie, konkret na końcu",
         sample="Stało się. Zasłona spadła z twojej skrzynki — trzy wiadomości ujarzmione.",
         prompt=(
             "Osobowość: mag, strażnik tajemnej wiedzy. Wypowiadasz się obrazowo, "
@@ -65,37 +63,60 @@ PERSONAS: list[Persona] = [
     ),
 ]
 
+_CUSTOM = "custom"
+
 
 def select_persona(console: Console) -> tuple[str, str]:
-    """Interactive picker; returns (persona_key, prompt_fragment)."""
-    console.print()
-    console.print("[bold]Wybierz osobowość agenta[/bold] — zmienisz ją zawsze "
-                  "komendą [bold #2563eb]persona[/]:\n")
-    for i, p in enumerate(PERSONAS, 1):
-        console.print(
-            Panel.fit(
-                f'[dim]„{p.sample}"[/dim]',
-                title=f"[bold #2563eb]{i}. {p.name}[/] — {p.tagline}",
-                title_align="left",
-                border_style="#1b2534",
-            )
-        )
-    console.print(
-        f"[bold #2563eb]{len(PERSONAS) + 1}. Własna[/] — opisz charakter po swojemu\n"
-    )
+    """Arrow-key persona picker; returns (persona_key, prompt_fragment)."""
+    from .wizard_ui import block, cyan
 
-    choice = Prompt.ask(
-        "[bold #2563eb]Numer[/]",
-        choices=[str(i) for i in range(1, len(PERSONAS) + 2)],
-        default="1",
-    )
-    idx = int(choice) - 1
+    console.print()
+    console.print(block("OSOBOWOŚĆ AGENTA", "Jak ma z Tobą rozmawiać?"))
+    for p in PERSONAS:
+        console.print(
+            f"  [bold {cyan}]▸[/] [bold]{p.name}[/] — [dim]{p.tagline}[/]"
+        )
+        console.print(f"      [dim]„{p.sample}”[/]")
+    console.print(f"  [bold {cyan}]▸[/] [bold]Własna[/] — [dim]opisz charakter sam[/]\n")
+
+    choices = [f"{p.name} — {p.tagline}" for p in PERSONAS]
+    choices.append("Własna — opisz sam")
+    idx = _pick(console, "Wybierz strzałkami ↑↓, Enter zatwierdza:", choices)
+
     if idx < len(PERSONAS):
         p = PERSONAS[idx]
         console.print(f"  [green]✓[/] osobowość: [bold]{p.name}[/]")
         return p.key, p.prompt
+
+    from rich.prompt import Prompt
+
     custom = Prompt.ask(
-        "[bold #2563eb]Opisz osobowość[/] (np. sarkastyczny stoik, cytuje Seneki)"
+        "  [bold #2563eb]Opisz osobowość[/] (np. sarkastyczny stoik, cytuje Senekę)"
     ).strip()
     console.print("  [green]✓[/] osobowość: własna")
-    return "custom", f"Osobowość opisana przez użytkownika: {custom}"
+    return _CUSTOM, f"Osobowość opisana przez użytkownika: {custom}"
+
+
+def _pick(console: Console, message: str, choices: list[str]) -> int:
+    """Arrow-key select via questionary; falls back to a numbered prompt."""
+    try:
+        import questionary
+
+        answer = questionary.select(
+            message,
+            choices=[questionary.Choice(c, value=i) for i, c in enumerate(choices)],
+            qmark="▸",
+            pointer="❯",
+            instruction=" ",
+        ).ask()
+        return int(answer) if answer is not None else 0
+    except Exception:
+        from rich.prompt import IntPrompt
+
+        for i, c in enumerate(choices, 1):
+            console.print(f"    [bold #2563eb]{i}.[/] {c}")
+        return IntPrompt.ask(
+            "  [bold #2563eb]Numer[/]",
+            choices=[str(i) for i in range(1, len(choices) + 1)],
+            default="1",
+        ) - 1
