@@ -28,7 +28,7 @@ export function ContentTabs({
   };
 
   return (
-    <div className="mx-auto max-w-6xl px-4 pb-16 sm:px-6">
+    <div id="wiecej" className="mx-auto max-w-6xl scroll-mt-16 px-4 pb-16 sm:px-6">
       <div
         role="tablist"
         aria-label="Sekcje strony"

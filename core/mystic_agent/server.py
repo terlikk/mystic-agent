@@ -253,11 +253,8 @@ def build_app() -> FastAPI:
 
     @app.get("/permissions")
     async def permissions_all() -> dict:
-        levels = permissions.all()
-        return {
-            t.capability: levels.get(t.capability, "propose")
-            for t in registry.all()
-        }
+        caps = sorted({t.capability for t in registry.all()})
+        return {cap: permissions.get(cap).value for cap in caps}
 
     @app.post("/permissions/{capability}/{level}")
     async def permissions_set(capability: str, level: str) -> dict:

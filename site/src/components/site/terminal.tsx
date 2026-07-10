@@ -206,7 +206,7 @@ export function Terminal() {
   return (
     <div
       ref={rootRef}
-      className="overflow-hidden rounded-2xl bg-term font-mono text-[13px] leading-relaxed shadow-[0_24px_70px_-20px_rgba(29,29,31,0.45)]"
+      className="overflow-hidden rounded-2xl bg-term text-left font-mono text-[13px] leading-relaxed shadow-[0_24px_70px_-20px_rgba(29,29,31,0.45)]"
       aria-label={`Podgląd terminala: agent ${PROJECT.name} startuje i wyświetla status`}
     >
       {/* macOS window chrome */}

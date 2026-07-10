@@ -41,9 +41,12 @@ def build_app() -> FastAPI:
     registry = ToolRegistry()
     for tool in builtin_tools(settings.db_path):
         registry.register(tool)
-    from .tools import automation_tools
+    from .tools import automation_tools, payment_tools
+    from .wallet import Wallet
 
     for tool in automation_tools(automations):
+        registry.register(tool)
+    for tool in payment_tools(Wallet(settings.db_path)):
         registry.register(tool)
 
     mailbox = None
