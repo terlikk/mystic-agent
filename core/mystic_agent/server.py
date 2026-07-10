@@ -6,7 +6,10 @@ import asyncio
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException
+from pathlib import Path as _Path
+
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import HTMLResponse
 
 from . import __version__
 from .agent import AgentLoop
@@ -200,6 +203,49 @@ def build_app() -> FastAPI:
     app.state.telegram_on = telegram is not None
     app.state.model = model
     app.state.tool_count = len(registry.all())
+
+    _dashboard = (_Path(__file__).parent / "dashboard" / "index.html").read_text(
+        encoding="utf-8"
+    )
+
+    @app.get("/", response_class=HTMLResponse)
+    async def dashboard() -> str:
+        return _dashboard
+
+    @app.get("/connections")
+    async def connections() -> dict:
+        return {
+            "llm": bool(
+                settings.anthropic_api_key
+                or settings.openai_api_key
+                or vault.get("anthropic_api_key")
+                or vault.get("openai_api_key")
+            ),
+            "telegram": bool(
+                settings.telegram_bot_token or vault.get("telegram_bot_token")
+            ),
+            "email": bool(vault.get("email_address")),
+            "model": model,
+        }
+
+    @app.post("/connections")
+    async def set_connections(request: Request) -> dict:
+        body = await request.json()
+        llm_key = str(body.get("llm_key", "")).strip()
+        if llm_key.startswith("sk-ant"):
+            vault.set("anthropic_api_key", llm_key)
+        elif llm_key:
+            vault.set("openai_api_key", llm_key)
+        if body.get("telegram_token"):
+            vault.set("telegram_bot_token", str(body["telegram_token"]).strip())
+        if body.get("email_address") and body.get("email_password"):
+            vault.set("email_address", str(body["email_address"]).strip())
+            vault.set("email_password", str(body["email_password"]).strip())
+        audit.record(
+            "user", "connections.updated", list(body.keys()), "ok",
+            "zmiana połączeń z panelu",
+        )
+        return {"ok": True, "note": "zrestartuj agenta, by zmiany weszły w życie"}
 
     @app.get("/health")
     async def health() -> dict:

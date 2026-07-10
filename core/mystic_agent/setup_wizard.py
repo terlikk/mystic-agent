@@ -157,4 +157,19 @@ def run_wizard(force: bool = False) -> None:
         if name:
             vault.set("user_name", name)
 
+    # ── O Tobie ──────────────────────────────────────────────────
+    if force or not vault.get("user_profiled"):
+        console.print(
+            "\n[bold]Powiedz w kilku zdaniach, kim jesteś i czym się zajmujesz.[/bold]\n"
+            "[dim]Dzięki temu od pierwszej wiadomości będę rozumieć Twój kontekst —\n"
+            "pracę, projekty, priorytety. Enter = pomiń.[/dim]"
+        )
+        about = Prompt.ask("[bold #2563eb]O Tobie[/]", default="", show_default=False).strip()
+        if about:
+            from .memory import Memory
+
+            Memory(settings.db_path).add(f"O użytkowniku: {about}")
+            vault.set("user_profiled", "1")
+            console.print("  [green]✓[/] zapamiętane — będę o tym pamiętać")
+
     console.print()
