@@ -22,13 +22,25 @@ def _shade(i: int, total: int) -> str:
 
 def print_banner(console: Console | None = None) -> None:
     console = console or Console()
+    # a clean, dedicated splash screen
+    try:
+        console.clear()
+    except Exception:
+        pass
+    console.print()
     console.print()
     for i, line in enumerate(BANNER):
-        console.print(Text("  " + line, style=f"bold {_shade(i, len(BANNER))}"))
+        console.print(Text(line, style=f"bold {_shade(i, len(BANNER))}"), justify="center")
+    console.print()
+    tagline = Text()
+    tagline.append("Twój Jarvis.  ", style="bold #e7edf5")
+    tagline.append("Twój serwer.  ", style="bold #e7edf5")
+    tagline.append("Twoje zasady.", style=f"bold {_GRADIENT[-1]}")
+    console.print(tagline, justify="center")
     console.print()
     console.print(
-        Text(f"  {NAME}", style="bold #e7edf5"),
-        Text("· Twój Jarvis. Twój serwer. Twoje zasady.", style="dim"),
+        Text("open source · self-hosted · zero chmury", style="dim"),
+        justify="center",
     )
     console.print()
 
