@@ -98,6 +98,9 @@
   html {
     @apply font-sans;
     scroll-behavior: smooth;
+    /* Stop iOS Safari from inflating font sizes — it mangles the ASCII banner */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
   body {
     @apply bg-background text-foreground antialiased;

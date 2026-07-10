@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import { animate } from "animejs";
 import { BentoCard, BentoGrid } from "@/components/ui/bento-grid";
 import { CommandLine } from "@/components/site/terminal";
-import { Reveal } from "@/components/site/reveal";
 import { PROJECT } from "@/config/site";
 
 /* ── permission control demo (iOS segmented control style) ─────── */
@@ -139,14 +138,14 @@ function EventFeed() {
         className="flex h-full flex-col justify-end gap-2 px-6 pt-6 sm:px-7"
       >
         {EVENTS.slice(0, visible).map((e) => (
-        <li
-          key={e.t}
-          className="flex items-center gap-3 rounded-xl bg-white px-4 py-2.5 text-xs text-ink shadow-sm"
-        >
-          <span className={`size-1.5 shrink-0 rounded-full ${e.dot}`} />
-          <span className="flex-1">{e.text}</span>
-          <span className="shrink-0 text-[10px] text-ink-2">{e.t}</span>
-        </li>
+          <li
+            key={e.t}
+            className="flex items-center gap-3 rounded-xl bg-white px-4 py-2.5 text-xs text-ink shadow-sm"
+          >
+            <span className={`size-1.5 shrink-0 rounded-full ${e.dot}`} />
+            <span className="flex-1">{e.text}</span>
+            <span className="shrink-0 text-[10px] text-ink-2">{e.t}</span>
+          </li>
         ))}
       </ul>
     </div>
@@ -200,55 +199,39 @@ function InstallDemo() {
   );
 }
 
-/* ── section ────────────────────────────────────────────────────── */
+/* ── tab panel ──────────────────────────────────────────────────── */
 
-export function Pillars() {
+export function PillarsPanel() {
   return (
-    <section id="filary" className="scroll-mt-14">
-      <div className="mx-auto max-w-5xl px-4 py-20 sm:px-6 sm:py-28">
-        <Reveal className="text-center">
-          <h2 className="text-3xl font-semibold tracking-tight text-balance sm:text-5xl">
-            Autonomia bez utraty kontroli.
-          </h2>
-          <p className="mx-auto mt-4 max-w-xl text-base text-ink-2 sm:text-lg">
-            Cztery rzeczy, które odróżniają {PROJECT.name} od frameworków do
-            składania samemu.
-          </p>
-        </Reveal>
-
-        <Reveal delay={120} className="mt-12">
-          <BentoGrid className="lg:grid-cols-3">
-            <BentoCard
-              name="Suwak uprawnień na każdej umiejętności"
-              className="lg:col-span-2"
-              eyebrow="Kontrola i zaufanie"
-              description="Od pełnej ciszy po pełną autonomię — Ty decydujesz, ile agent może. Propozycje czekają w skrzynce decyzji, a każde działanie ląduje w audycie. Wypróbuj:"
-              background={<PermissionControlDemo />}
-            />
-            <BentoCard
-              name="Produkt, nie framework"
-              className="lg:col-span-1"
-              eyebrow="Instalacja"
-              description="Jedna komenda w terminalu, reszta w przejrzystym dashboardzie."
-              background={<InstallDemo />}
-            />
-            <BentoCard
-              name="Sam zauważa, sam się odzywa"
-              className="lg:col-span-1"
-              eyebrow="Proaktywność"
-              description="Agent żyje na strumieniu zdarzeń i reaguje, zanim zdążysz zapytać."
-              background={<EventFeed />}
-            />
-            <BentoCard
-              name="Kuźnia narzędzi"
-              className="lg:col-span-2"
-              eyebrow="Samorozbudowa"
-              description="Gdy czegoś nie umie, pisze sobie nowe narzędzie: kod, test w sandboxie, Twoja zgoda, rejestracja. Skille to przetestowany kod — nie notatki."
-              background={<ForgePipeline />}
-            />
-          </BentoGrid>
-        </Reveal>
-      </div>
-    </section>
+    <BentoGrid className="auto-rows-[22rem] lg:grid-cols-3">
+      <BentoCard
+        name="Suwak uprawnień na każdej umiejętności"
+        className="lg:col-span-2"
+        eyebrow="Kontrola i zaufanie"
+        description="Od pełnej ciszy po pełną autonomię — Ty decydujesz, ile agent może. Propozycje czekają w skrzynce decyzji, a każde działanie ląduje w audycie. Wypróbuj:"
+        background={<PermissionControlDemo />}
+      />
+      <BentoCard
+        name="Produkt, nie framework"
+        className="lg:col-span-1"
+        eyebrow="Instalacja"
+        description="Jedna komenda w terminalu, reszta w przejrzystym dashboardzie."
+        background={<InstallDemo />}
+      />
+      <BentoCard
+        name="Sam zauważa, sam się odzywa"
+        className="lg:col-span-1"
+        eyebrow="Proaktywność"
+        description="Agent żyje na strumieniu zdarzeń i reaguje, zanim zdążysz zapytać."
+        background={<EventFeed />}
+      />
+      <BentoCard
+        name="Kuźnia narzędzi"
+        className="lg:col-span-2"
+        eyebrow="Samorozbudowa"
+        description="Gdy czegoś nie umie, pisze sobie nowe narzędzie: kod, test w sandboxie, Twoja zgoda, rejestracja. Skille to przetestowany kod — nie notatki."
+        background={<ForgePipeline />}
+      />
+    </BentoGrid>
   );
 }

@@ -1,11 +1,12 @@
 import { Navbar } from "@/components/site/navbar";
 import { Hero } from "@/components/site/hero";
-import { Pillars } from "@/components/site/pillars";
+import { ContentTabs } from "@/components/site/tabs";
+import { PillarsPanel } from "@/components/site/pillars";
 import {
-  Capabilities,
+  CapabilitiesPanel,
   Footer,
-  HowItWorks,
-  Roadmap,
+  HowItWorksPanel,
+  RoadmapPanel,
 } from "@/components/site/sections";
 
 export default function Home() {
@@ -14,10 +15,22 @@ export default function Home() {
       <Navbar />
       <main>
         <Hero />
-        <Pillars />
-        <Capabilities />
-        <HowItWorks />
-        <Roadmap />
+        <ContentTabs
+          tabs={[
+            { key: "filary", label: "Filary", content: <PillarsPanel /> },
+            {
+              key: "mozliwosci",
+              label: "Możliwości",
+              content: <CapabilitiesPanel />,
+            },
+            {
+              key: "jak-dziala",
+              label: "Jak działa",
+              content: <HowItWorksPanel />,
+            },
+            { key: "roadmapa", label: "Roadmapa", content: <RoadmapPanel /> },
+          ]}
+        />
       </main>
       <Footer />
     </>
