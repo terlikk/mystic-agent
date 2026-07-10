@@ -51,12 +51,22 @@ export function ScrollHero() {
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      const size = canvas.clientWidth;
-      if (canvas.width !== size * dpr) {
-        canvas.width = size * dpr;
-        canvas.height = size * dpr;
+      const cw = canvas.clientWidth;
+      const ch = canvas.clientHeight;
+      if (canvas.width !== cw * dpr || canvas.height !== ch * dpr) {
+        canvas.width = cw * dpr;
+        canvas.height = ch * dpr;
       }
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      // draw "cover": fill the whole canvas, cropping overflow, keep center
+      const W = canvas.width;
+      const H = canvas.height;
+      const ir = img.width / img.height;
+      const cr = W / H;
+      let dw = W;
+      let dh = H;
+      if (cr > ir) dh = W / ir;
+      else dw = H * ir;
+      ctx.drawImage(img, (W - dw) / 2, (H - dh) / 2, dw, dh);
     };
     for (let i = 0; i < FRAME_COUNT; i++) {
       const img = new Image();
@@ -113,28 +123,32 @@ export function ScrollHero() {
       style={{ height: reduced ? "100vh" : `${SEGMENTS * 100}vh` }}
       aria-label="Prezentacja agenta"
     >
-      <div className="sticky top-0 flex h-screen w-full items-center justify-center overflow-hidden">
-        {/* orb — contained, centered, scroll drives the frame */}
-        <div
-          className="pointer-events-none absolute top-[38%] -translate-y-1/2 sm:top-1/2"
-          style={{ width: "min(78vw, 44vh)", aspectRatio: "1 / 1" }}
+      <div className="sticky top-0 h-screen w-full overflow-hidden">
+        {/* orb — full-screen, scroll drives the frame */}
+        <canvas
+          ref={canvasRef}
+          className="absolute inset-0 h-full w-full"
           aria-hidden="true"
-        >
-          <div
-            className="absolute -inset-6 rounded-full opacity-60 blur-2xl"
-            style={{ background: "radial-gradient(circle, #22d3ee55, transparent 70%)" }}
-          />
-          <canvas ref={canvasRef} className="relative h-full w-full" />
-        </div>
+        />
 
-        {/* side captions — alternate left / right; sit beside/below the orb */}
+        {/* vignette for depth + side legibility */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(100% 100% at 50% 45%, rgba(4,6,10,0) 32%, rgba(4,6,10,0.5) 74%, rgba(4,6,10,0.9))",
+          }}
+          aria-hidden="true"
+        />
+
+        {/* side captions — alternate left / right over the orb */}
         {STEPS.map((step, i) => {
           const on = stepOn(i);
           const dir = step.side === "left" ? -1 : 1;
           return (
             <div
               key={i}
-              className={`absolute bottom-[12%] flex w-full max-w-xs flex-col px-8 sm:bottom-auto sm:top-1/2 sm:max-w-sm sm:-translate-y-1/2 sm:px-14 ${
+              className={`absolute inset-y-0 flex w-full max-w-md flex-col justify-center px-8 sm:px-14 ${
                 step.side === "left"
                   ? "left-0 items-start text-left"
                   : "right-0 items-end text-right"
@@ -150,10 +164,10 @@ export function ScrollHero() {
               <p className="font-mono text-[10px] tracking-[0.3em] text-[#22d3ee] uppercase sm:text-[11px]">
                 {step.kicker}
               </p>
-              <h2 className="mt-3 text-3xl leading-[1.05] font-semibold whitespace-pre-line text-white sm:text-5xl">
+              <h2 className="mt-4 text-4xl leading-[1.05] font-semibold whitespace-pre-line text-white sm:text-5xl">
                 {step.title}
               </h2>
-              <p className="mt-3 max-w-xs text-sm leading-relaxed text-white/65 sm:text-base">
+              <p className="mt-4 max-w-xs text-sm leading-relaxed text-white/70 sm:text-base">
                 {step.sub}
               </p>
             </div>
