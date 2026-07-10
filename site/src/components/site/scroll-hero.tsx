@@ -3,7 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import { CopyCommand } from "@/components/site/copy-command";
 
+const FRAME_COUNT = 61;
 const SEGMENTS = 4; // 3 side captions + a final install screen
+const frameSrc = (i: number) =>
+  `/orb-frames/f${String(i + 1).padStart(3, "0")}.jpg`;
 
 const STEPS = [
   {
@@ -28,7 +31,8 @@ const STEPS = [
 
 export function ScrollHero() {
   const trackRef = useRef<HTMLDivElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const imagesRef = useRef<HTMLImageElement[]>([]);
   const [p, setP] = useState(0); // 0 .. SEGMENTS-1
   const [reduced, setReduced] = useState(false);
 
@@ -36,8 +40,35 @@ export function ScrollHero() {
     setReduced(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
   }, []);
 
+  // preload frames + draw the one matching scroll progress
   useEffect(() => {
-    if (reduced) return;
+    const imgs: HTMLImageElement[] = [];
+    let loaded = 0;
+    const drawFrame = (idx: number) => {
+      const canvas = canvasRef.current;
+      const img = imgs[idx];
+      if (!canvas || !img || !img.complete) return;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const size = canvas.clientWidth;
+      if (canvas.width !== size * dpr) {
+        canvas.width = size * dpr;
+        canvas.height = size * dpr;
+      }
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    };
+    for (let i = 0; i < FRAME_COUNT; i++) {
+      const img = new Image();
+      img.src = frameSrc(i);
+      img.onload = () => {
+        loaded++;
+        if (i === 0) drawFrame(0);
+      };
+      imgs.push(img);
+    }
+    imagesRef.current = imgs;
+
     let raf = 0;
     const update = () => {
       raf = 0;
@@ -48,32 +79,31 @@ export function ScrollHero() {
       const scrolled = Math.min(Math.max(-rect.top, 0), scrollable);
       const t = scrollable > 0 ? scrolled / scrollable : 0; // 0..1
       setP(t * (SEGMENTS - 1));
-
-      const video = videoRef.current;
-      if (video && video.duration) {
-        // scrub the orb: scroll position drives the video frame
-        const target = t * video.duration;
-        if (Math.abs(video.currentTime - target) > 0.01) {
-          video.currentTime = target;
-        }
-      }
+      drawFrame(Math.min(FRAME_COUNT - 1, Math.round(t * (FRAME_COUNT - 1))));
     };
     const onScroll = () => {
       if (!raf) raf = requestAnimationFrame(update);
     };
-    update();
+    // draw first frame once images start arriving
+    const kick = setInterval(() => {
+      if (loaded > 0) {
+        update();
+        clearInterval(kick);
+      }
+    }, 60);
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onScroll);
     return () => {
+      clearInterval(kick);
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
       if (raf) cancelAnimationFrame(raf);
     };
-  }, [reduced]);
+  }, []);
 
   const stepOn = (i: number) =>
-    reduced ? (i === 0 ? 1 : 0) : Math.max(0, 1 - Math.abs(p - i) * 1.6);
-  const installOn = reduced ? 1 : Math.max(0, (p - 2.2) / 0.8);
+    reduced ? (i === 0 ? 1 : 0) : Math.max(0, 1 - Math.abs(p - i) * 1.7);
+  const installOn = reduced ? 1 : Math.max(0, (p - 2.3) / 0.7);
   const lastCenter = SEGMENTS - 1;
 
   return (
@@ -83,37 +113,28 @@ export function ScrollHero() {
       style={{ height: reduced ? "100vh" : `${SEGMENTS * 100}vh` }}
       aria-label="Prezentacja agenta"
     >
-      <div className="sticky top-0 h-screen w-full overflow-hidden">
-        {/* orb — scroll scrubs the video frame */}
-        <video
-          ref={videoRef}
-          className="absolute inset-0 h-full w-full object-cover"
-          src="/orb.mp4"
-          poster="/orb-poster.jpg"
-          muted
-          playsInline
-          preload="auto"
-          aria-hidden="true"
-        />
-
-        {/* vignette for depth + side legibility */}
+      <div className="sticky top-0 flex h-screen w-full items-center justify-center overflow-hidden">
+        {/* orb — contained, centered, scroll drives the frame */}
         <div
-          className="absolute inset-0"
-          style={{
-            background:
-              "radial-gradient(100% 100% at 50% 45%, rgba(4,6,10,0) 30%, rgba(4,6,10,0.55) 75%, rgba(4,6,10,0.9))",
-          }}
+          className="pointer-events-none absolute top-[38%] -translate-y-1/2 sm:top-1/2"
+          style={{ width: "min(78vw, 44vh)", aspectRatio: "1 / 1" }}
           aria-hidden="true"
-        />
+        >
+          <div
+            className="absolute -inset-6 rounded-full opacity-60 blur-2xl"
+            style={{ background: "radial-gradient(circle, #22d3ee55, transparent 70%)" }}
+          />
+          <canvas ref={canvasRef} className="relative h-full w-full" />
+        </div>
 
-        {/* side captions — alternate left / right per step */}
+        {/* side captions — alternate left / right; sit beside/below the orb */}
         {STEPS.map((step, i) => {
           const on = stepOn(i);
           const dir = step.side === "left" ? -1 : 1;
           return (
             <div
               key={i}
-              className={`absolute inset-y-0 flex w-full max-w-md flex-col justify-center px-8 sm:px-14 ${
+              className={`absolute bottom-[12%] flex w-full max-w-xs flex-col px-8 sm:bottom-auto sm:top-1/2 sm:max-w-sm sm:-translate-y-1/2 sm:px-14 ${
                 step.side === "left"
                   ? "left-0 items-start text-left"
                   : "right-0 items-end text-right"
@@ -122,17 +143,17 @@ export function ScrollHero() {
                 opacity: on,
                 transform: reduced
                   ? "none"
-                  : `translateX(${(1 - on) * dir * 40}px)`,
+                  : `translateX(${(1 - on) * dir * 36}px)`,
                 pointerEvents: on > 0.5 ? "auto" : "none",
               }}
             >
-              <p className="font-mono text-[11px] tracking-[0.3em] text-[#22d3ee] uppercase">
+              <p className="font-mono text-[10px] tracking-[0.3em] text-[#22d3ee] uppercase sm:text-[11px]">
                 {step.kicker}
               </p>
-              <h2 className="mt-4 text-4xl leading-[1.05] font-semibold whitespace-pre-line text-white sm:text-5xl">
+              <h2 className="mt-3 text-3xl leading-[1.05] font-semibold whitespace-pre-line text-white sm:text-5xl">
                 {step.title}
               </h2>
-              <p className="mt-4 max-w-xs text-sm leading-relaxed text-white/65 sm:text-base">
+              <p className="mt-3 max-w-xs text-sm leading-relaxed text-white/65 sm:text-base">
                 {step.sub}
               </p>
             </div>
@@ -141,7 +162,7 @@ export function ScrollHero() {
 
         {/* final: install command, dead center */}
         <div
-          className="absolute inset-0 flex flex-col items-center justify-center px-6 text-center"
+          className="absolute inset-0 flex flex-col items-center justify-center bg-[#04060a]/55 px-6 text-center backdrop-blur-[2px]"
           style={{
             opacity: installOn,
             transform: reduced
