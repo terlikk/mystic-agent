@@ -46,6 +46,22 @@ def start(host: str | None, port: int | None) -> None:
 
 
 @main.command()
+@click.confirmation_option(
+    prompt="Na pewno? Usunie sejf z kluczami, notatki, audyt i uprawnienia"
+)
+def reset() -> None:
+    """Wyczyść wszystkie dane agenta — onboarding zacznie się od zera."""
+    import shutil
+
+    if settings.data_dir.exists():
+        shutil.rmtree(settings.data_dir)
+        click.echo(f"✓ usunięto {settings.data_dir}")
+    else:
+        click.echo("nie było czego czyścić")
+    click.echo(f"Następny '{CLI_NAME} start' poprowadzi konfigurację od nowa.")
+
+
+@main.command()
 def setup() -> None:
     """Skonfiguruj klucze od nowa (klucz LLM, telegram) — trafiają do sejfu."""
     from .setup_wizard import run_wizard
