@@ -30,8 +30,8 @@ function toRuns(lines: readonly string[], ch: string): Runs {
   });
 }
 
-/* full-cell offset → chunky, perfectly square 3D extrusion */
-const SHADOW = 1;
+/* chunky, perfectly square 3D extrusion (units of the pixel grid) */
+const SHADOW = 1.5;
 const SHADOW_COLOR = "#312e81";
 
 function PixelArt({
@@ -103,9 +103,9 @@ function PixelArt({
 
 const BANNER_W = Math.max(...ASCII_BANNER.map((l) => l.length));
 const BANNER_RUNS = toRuns(ASCII_BANNER, "█");
-/* rows 0-4 = MYSTIC, rows 5-9 = AGENT; small gap between the words */
-const WORD_BREAK = 5;
-const WORD_GAP = 0.7;
+/* rows 0-9 = MYSTIC, rows 10-19 = AGENT; small gap between the words */
+const WORD_BREAK = 10;
+const WORD_GAP = 1.4;
 const bannerShift = (y: number) => (y >= WORD_BREAK ? y + WORD_GAP : y);
 
 const NEOFETCH_ROWS: [string, string][] = [
