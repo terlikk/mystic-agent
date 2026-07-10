@@ -1,10 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Image from "next/image";
 import { CopyCommand } from "@/components/site/copy-command";
 
-const FRAMES = ["/core-1.jpg", "/core-2.jpg", "/core-3.jpg", "/core-4.jpg"];
+const SEGMENTS = 4; // 3 side captions + a final install screen
 
 const STEPS = [
   {
@@ -29,11 +28,16 @@ const STEPS = [
 
 export function ScrollHero() {
   const trackRef = useRef<HTMLDivElement>(null);
-  const [p, setP] = useState(0); // 0 .. FRAMES.length-1
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [p, setP] = useState(0); // 0 .. SEGMENTS-1
   const [reduced, setReduced] = useState(false);
 
   useEffect(() => {
     setReduced(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  }, []);
+
+  useEffect(() => {
+    if (reduced) return;
     let raf = 0;
     const update = () => {
       raf = 0;
@@ -42,8 +46,17 @@ export function ScrollHero() {
       const rect = el.getBoundingClientRect();
       const scrollable = rect.height - window.innerHeight;
       const scrolled = Math.min(Math.max(-rect.top, 0), scrollable);
-      const t = scrollable > 0 ? scrolled / scrollable : 0;
-      setP(t * (FRAMES.length - 1));
+      const t = scrollable > 0 ? scrolled / scrollable : 0; // 0..1
+      setP(t * (SEGMENTS - 1));
+
+      const video = videoRef.current;
+      if (video && video.duration) {
+        // scrub the orb: scroll position drives the video frame
+        const target = t * video.duration;
+        if (Math.abs(video.currentTime - target) > 0.01) {
+          video.currentTime = target;
+        }
+      }
     };
     const onScroll = () => {
       if (!raf) raf = requestAnimationFrame(update);
@@ -56,56 +69,34 @@ export function ScrollHero() {
       window.removeEventListener("resize", onScroll);
       if (raf) cancelAnimationFrame(raf);
     };
-  }, []);
+  }, [reduced]);
 
-  const frameOpacity = (i: number) =>
-    reduced ? (i === 0 ? 1 : 0) : Math.max(0, 1 - Math.abs(p - i));
-
-  // scroll-linked zoom + drift gives the orb a sense of motion
-  const scale = reduced ? 1 : 1 + p * 0.05;
-  const drift = reduced ? 0 : (p - 1.5) * 1.5; // subtle vertical parallax %
-
-  // per-step text visibility (bell around each step center)
   const stepOn = (i: number) =>
     reduced ? (i === 0 ? 1 : 0) : Math.max(0, 1 - Math.abs(p - i) * 1.6);
-
-  // install block reveals near the last frame
   const installOn = reduced ? 1 : Math.max(0, (p - 2.2) / 0.8);
-  const lastCenter = FRAMES.length - 1;
+  const lastCenter = SEGMENTS - 1;
 
   return (
     <section
       ref={trackRef}
       className="relative bg-[#04060a]"
-      style={{ height: reduced ? "100vh" : `${FRAMES.length * 100}vh` }}
+      style={{ height: reduced ? "100vh" : `${SEGMENTS * 100}vh` }}
       aria-label="Prezentacja agenta"
     >
       <div className="sticky top-0 h-screen w-full overflow-hidden">
-        {/* orb frames — crossfade + zoom + drift */}
-        <div
-          className="absolute inset-0 animate-[orb-breathe_9s_ease-in-out_infinite] will-change-transform"
-          style={{ transform: `scale(${scale}) translateY(${drift}%)` }}
+        {/* orb — scroll scrubs the video frame */}
+        <video
+          ref={videoRef}
+          className="absolute inset-0 h-full w-full object-cover"
+          src="/orb.mp4"
+          poster="/orb-poster.jpg"
+          muted
+          playsInline
+          preload="auto"
           aria-hidden="true"
-        >
-          {FRAMES.map((src, i) => (
-            <div
-              key={src}
-              className="absolute inset-0 will-change-[opacity]"
-              style={{ opacity: frameOpacity(i) }}
-            >
-              <Image
-                src={src}
-                alt=""
-                fill
-                priority={i === 0}
-                sizes="100vw"
-                className="object-cover"
-              />
-            </div>
-          ))}
-        </div>
+        />
 
-        {/* vignette for depth + legibility on the sides */}
+        {/* vignette for depth + side legibility */}
         <div
           className="absolute inset-0"
           style={{
@@ -176,7 +167,7 @@ export function ScrollHero() {
 
         {/* progress dots */}
         <div className="absolute inset-x-0 bottom-7 flex items-center justify-center gap-2">
-          {FRAMES.map((_, i) => (
+          {Array.from({ length: SEGMENTS }).map((_, i) => (
             <span
               key={i}
               className="h-1 rounded-full transition-all duration-300"
