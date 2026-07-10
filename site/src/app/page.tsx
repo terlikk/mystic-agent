@@ -35,7 +35,8 @@ export default function Home() {
         <section className="grid items-center gap-12 lg:grid-cols-[1.05fr_1fr] lg:gap-16">
           <div>
             <p className="font-mono text-[11px] tracking-[0.2em] text-ink-2 uppercase">
-              open source · self-hosted
+              open source · self-hosted ·{" "}
+              <span className="text-indigo">wczesna wersja</span>
             </p>
             <h1 className="mt-5 font-heading text-[2.6rem] leading-[1.02] font-medium tracking-[-0.01em] text-balance sm:text-6xl">
               Agent, który nie
@@ -52,7 +53,8 @@ export default function Home() {
               <CopyCommand />
             </div>
             <p className="mt-2.5 font-mono text-[11px] text-ink-2">
-              jedna komenda · macOS / Linux · Python 3.11+
+              jedna komenda · macOS / Linux · Python 3.11+ · v0.3 — działa,
+              ale API może się jeszcze zmieniać
             </p>
           </div>
 
