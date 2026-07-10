@@ -84,6 +84,21 @@ def build_app() -> FastAPI:
         else:
             log.info("notify (no telegram): %s", text)
 
+    async def notify_photo(path: str, caption: str = "") -> None:
+        if telegram is not None:
+            await telegram.send_photo(path, caption)
+        else:
+            log.info("notify_photo (no telegram): %s", path)
+
+    from .browser_tools import browser_available
+
+    if browser_available():
+        from .browser_tools import BrowserSession, browser_tools
+
+        session = BrowserSession(settings.data_dir / "browser")
+        for tool in browser_tools(session, notify_photo):
+            registry.register(tool)
+
     model = vault.get("llm_model") or settings.llm_model
     provider = make_provider(
         model,

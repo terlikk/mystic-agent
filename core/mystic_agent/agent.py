@@ -58,6 +58,7 @@ class AgentLoop:
         self.skills_dir = skills_dir
         self.memory = memory
         self.conversation = conversation
+        self._proposed = False
         self.bus = bus
         self.provider = provider
         self.tools = tools
@@ -149,6 +150,7 @@ class AgentLoop:
         if self.conversation is not None:
             self.conversation.append("user", user_text)
         system = self._effective_system()
+        self._proposed = False
         for _ in range(MAX_STEPS):
             reply = await self.provider.chat(
                 system, messages, self.tools.specs()
@@ -168,6 +170,9 @@ class AgentLoop:
             for call in reply.tool_calls:
                 result = await self._dispatch(call, context=user_text)
                 results.append(f"{call.name}: {result}")
+            # if something is now waiting on the owner, stop — don't re-ask
+            if self._proposed:
+                return
             messages.append(
                 {"role": "assistant", "content": reply.text or "(używam narzędzi)"}
             )
@@ -184,6 +189,7 @@ class AgentLoop:
             text += f"\n\nKontekst:\n{context}"
         messages: list[dict[str, Any]] = [{"role": "user", "content": text}]
         system = self._effective_system()
+        self._proposed = False
         for _ in range(MAX_STEPS):
             reply = await self.provider.chat(system, messages, self.tools.specs())
             if not reply.tool_calls:
@@ -198,6 +204,8 @@ class AgentLoop:
             for call in reply.tool_calls:
                 result = await self._dispatch(call, context=instruction)
                 results.append(f"{call.name}: {result}")
+            if self._proposed:
+                return
             messages.append(
                 {"role": "assistant", "content": reply.text or "(używam narzędzi)"}
             )
@@ -231,6 +239,7 @@ class AgentLoop:
                 f"Proponuję: {tool.name} {call.args}\nPowód: {context}",
                 {"decision_id": decision_id},
             )
+            self._proposed = True
             return "propozycja wysłana do użytkownika — czekam na decyzję"
 
         result = await tool.func(call.args)

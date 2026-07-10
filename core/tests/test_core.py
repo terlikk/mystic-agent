@@ -37,12 +37,67 @@ def test_vault_roundtrip(paths):
     assert Vault(db_path, key).get("telegram_bot_token") == "123:abc"
 
 
-def test_permission_store_defaults_to_propose(paths):
+def test_permission_sensible_defaults(paths):
     db_path, _ = paths
     store = PermissionStore(db_path)
-    assert store.get("anything") == Level.PROPOSE
-    store.set("notes", Level.ACT_SILENT)
+    # unknown capability asks; harmless ones don't; risky ones ask
+    assert store.get("something_new") == Level.PROPOSE
+    assert store.get("web") == Level.ACT_SILENT
     assert store.get("notes") == Level.ACT_SILENT
+    assert store.get("email_send") == Level.PROPOSE
+    assert store.get("shell") == Level.PROPOSE
+    assert store.get("payment") == Level.PROPOSE
+    # explicit override wins
+    store.set("web", Level.PROPOSE)
+    assert store.get("web") == Level.PROPOSE
+
+
+class DoubleSearchProvider:
+    """Always asks to web_search — used to prove we don't double-propose."""
+
+    async def chat(self, system, messages, tools):
+        return LLMReply(tool_calls=[ToolCall("web_search", {"query": "pogoda"})])
+
+
+async def test_no_double_proposal(paths):
+    db_path, _ = paths
+    bus = EventBus()
+    audit = AuditLog(db_path)
+    permissions = PermissionStore(db_path)
+    permissions.set("web", Level.PROPOSE)  # force a proposal
+    inbox = DecisionInbox(db_path)
+    registry = ToolRegistry()
+    for tool in builtin_tools(db_path):
+        registry.register(tool)
+    sent: list[str] = []
+
+    async def notify(text, meta=None):
+        sent.append(text)
+
+    loop = AgentLoop(
+        bus, DoubleSearchProvider(), registry, permissions, inbox, audit, notify
+    )
+    await loop.handle(
+        Event(type="telegram.message", payload={"text": "pogoda?"}, source="t")
+    )
+    # exactly one proposal, not a storm
+    assert len(inbox.pending()) == 1
+    assert sum("Proponuję" in s for s in sent) == 1
+
+
+def test_wallet_budget_ceiling(paths):
+    from mystic_agent.wallet import Wallet
+
+    db_path, _ = paths
+    w = Wallet(db_path)
+    # no budget → nothing is auto-allowed
+    ok, _ = w.check(50)
+    assert not ok
+    w.set_policy(per_txn=200, monthly=500)
+    assert w.check(150)[0] is True
+    assert w.check(250)[0] is False  # over per-txn
+    w.record(400, "hotel", "")
+    assert w.check(150)[0] is False  # over monthly (400+150 > 500)
 
 
 class ScriptedProvider:

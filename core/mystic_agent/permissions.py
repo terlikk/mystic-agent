@@ -24,7 +24,25 @@ class Level(StrEnum):
     ACT_SILENT = "act_silent"
 
 
+# New/unknown capabilities ask by default; known low-risk ones don't, so
+# the agent doesn't nag about harmless things like a web search.
 DEFAULT_LEVEL = Level.PROPOSE
+
+CAPABILITY_DEFAULTS: dict[str, "Level"] = {
+    "system": Level.ACT_SILENT,     # clock — read only
+    "web": Level.ACT_SILENT,        # search / read pages — read only
+    "notes": Level.ACT_SILENT,
+    "memory": Level.ACT_SILENT,
+    "files": Level.ACT_SILENT,      # reading local files
+    "reminders": Level.ACT_REPORT,
+    "calendar": Level.ACT_REPORT,
+    "automations": Level.ACT_REPORT,
+    "email_read": Level.ACT_REPORT,
+    "browser": Level.ACT_REPORT,    # shows screenshots as it works
+    "email_send": Level.PROPOSE,    # consequential — always ask
+    "shell": Level.PROPOSE,
+    "payment": Level.PROPOSE,
+}
 
 
 class PermissionStore:
@@ -37,7 +55,9 @@ class PermissionStore:
                 "SELECT level FROM permissions WHERE capability = ?",
                 (capability,),
             ).fetchone()
-        return Level(row["level"]) if row else DEFAULT_LEVEL
+        if row:
+            return Level(row["level"])
+        return CAPABILITY_DEFAULTS.get(capability, DEFAULT_LEVEL)
 
     def set(self, capability: str, level: Level) -> None:
         with db(self._path) as conn:

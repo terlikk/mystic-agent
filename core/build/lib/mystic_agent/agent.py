@@ -33,7 +33,8 @@ def build_system_prompt(persona: str = "", user_name: str = "") -> str:
         parts.append(f"Do użytkownika zwracaj się: {user_name}.")
     return "\n\n".join(parts)
 
-MAX_STEPS = 6  # hard cap per event: decide→act→observe iterations
+MAX_STEPS = 12  # hard cap per event: decide→act→observe iterations
+               # (multi-step web tasks like a booking need several)
 
 
 class AgentLoop:

@@ -369,6 +369,85 @@ def builtin_tools(db_path: Path) -> list[Tool]:
     ]
 
 
+def payment_tools(wallet) -> list[Tool]:
+    """Spending guard — a hard budget ceiling on top of the permission gate.
+    Use a capped virtual card as the real payment method, never a main card."""
+
+    async def authorize_payment(args: dict[str, Any]) -> str:
+        try:
+            amount = float(args.get("amount", 0))
+        except (TypeError, ValueError):
+            return "podaj kwotę liczbą"
+        merchant = str(args.get("merchant", "")).strip() or "?"
+        url = str(args.get("url", ""))
+        ok, msg = wallet.check(amount)
+        if not ok:
+            return f"ODMOWA płatności {amount:.2f} u {merchant}: {msg}"
+        wallet.record(amount, merchant, url)
+        return f"autoryzowano płatność {amount:.2f} u {merchant} ({msg})"
+
+    async def set_budget(args: dict[str, Any]) -> str:
+        per_txn = float(args.get("per_txn", 0))
+        monthly = float(args.get("monthly", 0))
+        currency = str(args.get("currency", "PLN"))
+        wallet.set_policy(per_txn, monthly, currency)
+        return (
+            f"budżet: max {per_txn:.2f} {currency}/transakcja,"
+            f" {monthly:.2f} {currency}/miesiąc"
+        )
+
+    async def budget_status(_: dict[str, Any]) -> str:
+        per_txn, monthly, cur = wallet.policy()
+        if per_txn <= 0:
+            return "budżet nie ustawiony — agent nie może płacić bez ręcznej zgody"
+        return (
+            f"limit/transakcja: {per_txn:.2f} {cur}\n"
+            f"limit/miesiąc: {monthly:.2f} {cur}\n"
+            f"wydano w tym miesiącu: {wallet.spent_this_month():.2f} {cur}"
+        )
+
+    return [
+        Tool(
+            name="authorize_payment",
+            capability="payment",
+            description="Autoryzuje płatność (kwota + sprzedawca) w ramach budżetu."
+            " Wywołaj TUŻ PRZED finalnym potwierdzeniem zakupu.",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "amount": {"type": "number"},
+                    "merchant": {"type": "string"},
+                    "url": {"type": "string"},
+                },
+                "required": ["amount", "merchant"],
+            },
+            func=authorize_payment,
+        ),
+        Tool(
+            name="set_budget",
+            capability="payment",
+            description="Ustawia limity wydatków agenta (na transakcję i miesiąc).",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "per_txn": {"type": "number"},
+                    "monthly": {"type": "number"},
+                    "currency": {"type": "string"},
+                },
+                "required": ["per_txn"],
+            },
+            func=set_budget,
+        ),
+        Tool(
+            name="budget_status",
+            capability="system",
+            description="Pokazuje limity i ile agent wydał w tym miesiącu.",
+            parameters={"type": "object", "properties": {}},
+            func=budget_status,
+        ),
+    ]
+
+
 def automation_tools(store) -> list[Tool]:
     """Tools that let the agent set up its own standing instructions —
     so 'pilnuj maili od klientów i odpowiadaj' just works."""
