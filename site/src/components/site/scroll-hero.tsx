@@ -11,21 +11,21 @@ const frameSrc = (i: number) =>
 const STEPS = [
   {
     side: "left" as const,
-    kicker: "// twój Jarvis",
+    kicker: "// osobisty agent AI",
     title: "Twój Jarvis.\nTwój serwer.",
-    sub: "Osobisty agent AI, który mieszka na Twoim komputerze.",
+    sub: "Żyje na Twoim komputerze i realnie załatwia sprawy — nie kolejne okno czatu.",
   },
   {
     side: "right" as const,
-    kicker: "// proaktywny",
-    title: "Sam zauważa.\nSam działa.",
-    sub: "Maile, kalendarz, czujki — reaguje, zanim zdążysz zapytać.",
+    kicker: "// sam z siebie",
+    title: "Nie czeka\nna komendę.",
+    sub: "Widzi nowy mail, spadek ceny, zbliżający się termin — i reaguje pierwszy.",
   },
   {
     side: "left" as const,
-    kicker: "// pod kontrolą",
-    title: "Pyta o to,\nco ważne.",
-    sub: "Suwak uprawnień i skrzynka decyzji. Ostatnie słowo masz Ty.",
+    kicker: "// zawsze pod kontrolą",
+    title: "Autonomia\nna smyczy.",
+    sub: "Każda zdolność ma suwak — od „pytaj o wszystko” po „działaj sam”. Ty ustawiasz.",
   },
 ];
 
@@ -189,14 +189,15 @@ export function ScrollHero() {
             // open source · self-hosted
           </p>
           <h2 className="mt-4 max-w-lg text-4xl leading-[1.05] font-semibold text-white sm:text-5xl">
-            Postaw u siebie
-            <br />w 5 minut.
+            Postaw u siebie.
+            <br />
+            Jedna komenda.
           </h2>
           <div className="mt-8 w-full max-w-xl">
             <CopyCommand />
           </div>
           <p className="mt-3 text-xs text-white/45">
-            Twoje dane zostają u Ciebie. Zero chmury.
+            Twój sprzęt, Twoje klucze. Zero chmury, zero kont, zero telemetrii.
           </p>
         </div>
 
