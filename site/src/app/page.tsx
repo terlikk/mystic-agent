@@ -1,5 +1,5 @@
 import { Navbar } from "@/components/site/navbar";
-import { Hero } from "@/components/site/hero";
+import { ScrollHero } from "@/components/site/scroll-hero";
 import { ContentTabs } from "@/components/site/tabs";
 import { PillarsPanel } from "@/components/site/pillars";
 import {
@@ -14,7 +14,7 @@ export default function Home() {
     <>
       <Navbar />
       <main>
-        <Hero />
+        <ScrollHero />
         <ContentTabs
           tabs={[
             { key: "filary", label: "Filary", content: <PillarsPanel /> },
