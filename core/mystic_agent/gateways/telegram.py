@@ -187,3 +187,12 @@ class TelegramGateway:
         await self._app.bot.send_message(
             chat_id=self._owner_id, text=text, reply_markup=markup
         )
+
+    async def send_photo(self, path: str, caption: str = "") -> None:
+        if self._owner_id == 0:
+            log.warning("no owner chat yet — dropping photo")
+            return
+        with open(path, "rb") as photo:
+            await self._app.bot.send_photo(
+                chat_id=self._owner_id, photo=photo, caption=caption[:1000]
+            )

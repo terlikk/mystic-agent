@@ -82,6 +82,39 @@ class Mailbox:
                 lines.append(f"… i jeszcze {more} starszych nieprzeczytanych")
             return "\n".join(lines)
 
+    def max_uid(self) -> int:
+        with imaplib.IMAP4_SSL(self.imap_host) as imap:
+            imap.login(self.address, self.password)
+            imap.select("INBOX", readonly=True)
+            _, data = imap.uid("search", None, "ALL")
+            uids = data[0].split()
+            return int(uids[-1]) if uids else 0
+
+    def fetch_new(self, last_uid: int, limit: int = 10) -> tuple[list[dict], int]:
+        """Return emails with UID > last_uid (newest first), and the new max."""
+        with imaplib.IMAP4_SSL(self.imap_host) as imap:
+            imap.login(self.address, self.password)
+            imap.select("INBOX", readonly=True)
+            _, data = imap.uid("search", None, f"UID {last_uid + 1}:*")
+            uids = [int(u) for u in data[0].split() if int(u) > last_uid]
+            out: list[dict] = []
+            max_uid = last_uid
+            for uid in sorted(uids, reverse=True)[:limit]:
+                max_uid = max(max_uid, uid)
+                _, msg_data = imap.uid("fetch", str(uid), "(BODY.PEEK[])")
+                if not msg_data or msg_data[0] is None:
+                    continue
+                msg = email.message_from_bytes(msg_data[0][1])
+                out.append(
+                    {
+                        "uid": uid,
+                        "from": _decode(msg["From"]),
+                        "subject": _decode(msg["Subject"]),
+                        "body": _body_text(msg).strip(),
+                    }
+                )
+            return out, max(max_uid, max(uids) if uids else last_uid)
+
     def read(self, uid: str) -> str:
         with imaplib.IMAP4_SSL(self.imap_host) as imap:
             imap.login(self.address, self.password)

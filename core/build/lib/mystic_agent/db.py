@@ -49,6 +49,22 @@ CREATE TABLE IF NOT EXISTS messages (
     role TEXT NOT NULL,             -- user | assistant
     content TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS automations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    created_at TEXT NOT NULL,
+    kind TEXT NOT NULL,             -- schedule | email | url
+    instruction TEXT NOT NULL,
+    spec_json TEXT NOT NULL,        -- {at, every_minutes, url, sender, ...}
+    state_json TEXT NOT NULL DEFAULT '{}',  -- {next_due, last_uid, last_hash}
+    enabled INTEGER NOT NULL DEFAULT 1
+);
+CREATE TABLE IF NOT EXISTS calendar (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    created_at TEXT NOT NULL,
+    start_at TEXT NOT NULL,
+    title TEXT NOT NULL,
+    notes TEXT NOT NULL DEFAULT ''
+);
 CREATE TABLE IF NOT EXISTS audit (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     ts TEXT NOT NULL,

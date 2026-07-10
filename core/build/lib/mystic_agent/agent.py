@@ -92,6 +92,10 @@ class AgentLoop:
             )
         elif event.type == "forge.request":
             await self._forge_skill(event.payload["description"])
+        elif event.type == "automation.run":
+            await self.run_instruction(
+                event.payload["instruction"], event.payload.get("context", "")
+            )
         elif event.type == "cron.tick":
             pass  # watchers will hook in here (stage 2+)
         else:
@@ -162,6 +166,36 @@ class AgentLoop:
             results: list[str] = []
             for call in reply.tool_calls:
                 result = await self._dispatch(call, context=user_text)
+                results.append(f"{call.name}: {result}")
+            messages.append(
+                {"role": "assistant", "content": reply.text or "(używam narzędzi)"}
+            )
+            messages.append(
+                {"role": "user", "content": "Wyniki narzędzi:\n" + "\n".join(results)}
+            )
+
+    async def run_instruction(self, instruction: str, context: str = "") -> None:
+        """Execute a standing instruction autonomously (from the scheduler).
+        Actions still go through the permission gate, so a 'propose'-level
+        send lands in the decision inbox instead of firing silently."""
+        text = f"[ZADANIE AUTOMATYCZNE] {instruction}"
+        if context:
+            text += f"\n\nKontekst:\n{context}"
+        messages: list[dict[str, Any]] = [{"role": "user", "content": text}]
+        system = self._effective_system()
+        for _ in range(MAX_STEPS):
+            reply = await self.provider.chat(system, messages, self.tools.specs())
+            if not reply.tool_calls:
+                if reply.text:
+                    await self.notify(reply.text, None)
+                    self.audit.record(
+                        "agent", "autonomous", instruction, reply.text,
+                        "zadanie automatyczne",
+                    )
+                return
+            results: list[str] = []
+            for call in reply.tool_calls:
+                result = await self._dispatch(call, context=instruction)
                 results.append(f"{call.name}: {result}")
             messages.append(
                 {"role": "assistant", "content": reply.text or "(używam narzędzi)"}
