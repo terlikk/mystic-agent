@@ -34,10 +34,19 @@ def build_app() -> FastAPI:
     permissions = PermissionStore(settings.db_path)
     inbox = DecisionInbox(settings.db_path)
 
+    from .automations import AutomationStore
+
+    automations = AutomationStore(settings.db_path)
+
     registry = ToolRegistry()
     for tool in builtin_tools(settings.db_path):
         registry.register(tool)
+    from .tools import automation_tools
 
+    for tool in automation_tools(automations):
+        registry.register(tool)
+
+    mailbox = None
     email_address = vault.get("email_address") or ""
     email_password = vault.get("email_password") or ""
     if email_address and email_password:
@@ -126,6 +135,27 @@ def build_app() -> FastAPI:
                     row["text"], "zaplanowane przypomnienie",
                 )
 
+    async def scheduler_worker() -> None:
+        """The proactive engine — turns standing automations into events."""
+        from .proactive import Scheduler
+
+        async def fetch_url(url: str) -> str:
+            import httpx
+
+            async with httpx.AsyncClient(
+                follow_redirects=True, timeout=20
+            ) as client:
+                resp = await client.get(url)
+            return resp.text
+
+        scheduler = Scheduler(automations, bus, mailbox=mailbox, fetch_url=fetch_url)
+        while True:
+            await asyncio.sleep(30)
+            try:
+                await scheduler.tick()
+            except Exception:
+                log.exception("scheduler tick failed")
+
     @asynccontextmanager
     async def lifespan(fastapi_app: FastAPI):
         from .skills_loader import load_skills
@@ -137,19 +167,10 @@ def build_app() -> FastAPI:
         tasks = [
             asyncio.create_task(loop.run_forever(), name="agent-loop"),
             asyncio.create_task(reminder_worker(), name="reminders"),
+            asyncio.create_task(scheduler_worker(), name="scheduler"),
         ]
         if telegram is not None:
             await telegram.start()
-        if settings.heartbeat_seconds > 0:
-
-            async def heartbeat() -> None:
-                while True:
-                    await asyncio.sleep(settings.heartbeat_seconds)
-                    await bus.publish(
-                        Event(type="cron.tick", payload={}, source="cron")
-                    )
-
-            tasks.append(asyncio.create_task(heartbeat(), name="heartbeat"))
         audit.record("system", "start", {}, "ok", f"{NAME} wstał")
         yield
         for task in tasks:
@@ -196,6 +217,10 @@ def build_app() -> FastAPI:
             )
         )
         return decision
+
+    @app.get("/automations")
+    async def automations_list() -> list[dict]:
+        return automations.all()
 
     @app.get("/skills")
     async def skills_list() -> list[dict]:

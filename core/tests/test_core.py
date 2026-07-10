@@ -227,6 +227,88 @@ async def test_conversation_history_persists_and_feeds_back(paths):
     assert "Filip" in provider2.seen_system
 
 
+async def test_scheduler_fires_due_schedule(paths):
+    from datetime import datetime, timedelta, timezone
+
+    from mystic_agent.automations import AutomationStore
+    from mystic_agent.proactive import Scheduler
+
+    db_path, _ = paths
+    store = AutomationStore(db_path)
+    store.add("schedule", "zrób podsumowanie", {"every_minutes": 30})
+    bus = EventBus()
+    sched = Scheduler(store, bus)
+
+    now = datetime.now(timezone.utc)
+    # first tick only arms next_due, fires nothing
+    assert await sched.tick(now) == 0
+    # not due yet
+    assert await sched.tick(now + timedelta(minutes=10)) == 0
+    # due → fires one automation.run
+    assert await sched.tick(now + timedelta(minutes=31)) == 1
+    event = await bus.get()
+    assert event.type == "automation.run"
+    assert event.payload["instruction"] == "zrób podsumowanie"
+
+
+class FakeMailbox:
+    def __init__(self):
+        self._new = [
+            {"uid": 11, "from": "klient@firma.pl", "subject": "Wycena",
+             "body": "Proszę o wycenę."}
+        ]
+
+    def max_uid(self):
+        return 10
+
+    def fetch_new(self, last_uid, limit=10):
+        fresh = [m for m in self._new if m["uid"] > last_uid]
+        max_uid = max([m["uid"] for m in self._new] + [last_uid])
+        return fresh, max_uid
+
+
+async def test_email_watcher_fires_on_new_mail(paths):
+    from mystic_agent.automations import AutomationStore
+    from mystic_agent.proactive import Scheduler
+
+    db_path, _ = paths
+    store = AutomationStore(db_path)
+    store.add("email", "odpisz klientowi", {"sender": "klient@"})
+    bus = EventBus()
+    sched = Scheduler(store, bus, mailbox=FakeMailbox())
+
+    # first tick baselines last_uid to current max (10) → no fire
+    assert await sched.tick() == 0
+    # second tick sees uid 11 → fires with the email as context
+    assert await sched.tick() == 1
+    event = await bus.get()
+    assert event.type == "automation.run"
+    assert "Wycena" in event.payload["context"]
+
+
+async def test_automation_action_respects_permission_gate(paths):
+    """An autonomous email reply must land in the inbox when send is 'propose'."""
+    db_path, _ = paths
+    bus = EventBus()
+    audit = AuditLog(db_path)
+    permissions = PermissionStore(db_path)
+    permissions.set("notes", Level.PROPOSE)
+    inbox = DecisionInbox(db_path)
+    registry = ToolRegistry()
+    for tool in builtin_tools(db_path):
+        registry.register(tool)
+
+    async def notify(text, meta=None):
+        pass
+
+    loop = AgentLoop(
+        bus, ScriptedProvider(), registry, permissions, inbox, audit, notify
+    )
+    # ScriptedProvider calls add_note → notes is 'propose' → proposal, not action
+    await loop.run_instruction("zanotuj coś", "kontekst")
+    assert len(inbox.pending()) == 1
+
+
 class ForgeProvider:
     """Returns a valid skill file that doubles a number."""
 
