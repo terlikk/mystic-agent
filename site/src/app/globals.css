@@ -126,6 +126,17 @@
   }
 }
 
+/* Orb "breathing" — subtle life on the scroll hero */
+@keyframes orb-breathe {
+  0%,
+  100% {
+    filter: brightness(1) saturate(1);
+  }
+  50% {
+    filter: brightness(1.12) saturate(1.15);
+  }
+}
+
 /* Blinking terminal cursor */
 @keyframes cursor-blink {
   0%,
