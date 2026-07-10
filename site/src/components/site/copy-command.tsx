@@ -18,7 +18,7 @@ export function CopyCommand() {
   };
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl items-center gap-3 rounded-xl bg-term px-4 py-3 font-mono text-sm shadow-[0_10px_40px_-16px_rgba(29,29,31,0.5)]">
+    <div className="mx-auto flex w-full max-w-2xl items-center gap-3 rounded-xl border border-white/8 bg-term px-4 py-3 font-mono text-sm shadow-[0_10px_40px_-16px_rgba(0,0,0,0.6)]">
       <span className="shrink-0 select-none text-[#7aa5ff]">$</span>
       <code className="min-w-0 flex-1 truncate text-left text-white/90">
         {PROJECT.installCmd}

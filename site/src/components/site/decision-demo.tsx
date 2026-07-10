@@ -67,7 +67,7 @@ export function DecisionDemo() {
   }, [shown]);
 
   return (
-    <div className="overflow-hidden rounded-2xl bg-term shadow-[0_24px_70px_-24px_rgba(17,17,20,0.5)]">
+    <div className="overflow-hidden rounded-2xl border border-white/8 bg-term shadow-[0_24px_70px_-24px_rgba(0,0,0,0.7)]">
       <div className="flex items-center gap-2 border-b border-white/8 px-4 py-3">
         <span className="size-2.5 rounded-full bg-white/15" />
         <span className="size-2.5 rounded-full bg-white/15" />

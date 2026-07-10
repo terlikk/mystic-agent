@@ -2,9 +2,9 @@ import { PROJECT } from "@/config/site";
 
 export function Navbar() {
   return (
-    <header className="fixed inset-x-0 top-0 z-50 border-b border-hairline/50 bg-white/80 backdrop-blur-xl">
+    <header className="fixed inset-x-0 top-0 z-50 border-b border-hairline/60 bg-[#0e0f13]/80 backdrop-blur-xl">
       <nav className="mx-auto flex h-14 max-w-4xl items-center px-4 sm:px-6">
-        <a href="#" className="text-sm font-semibold tracking-tight">
+        <a href="#" className="text-sm font-semibold tracking-tight text-ink">
           {PROJECT.name}
         </a>
         <a

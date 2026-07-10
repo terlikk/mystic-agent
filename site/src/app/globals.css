@@ -11,19 +11,18 @@
   --font-mono: var(--font-jetbrains);
   --font-heading: var(--font-fraunces);
 
-  /* MysticAgent — "mystic meets machine": warm paper, editorial serif,
-     mono as the agent's voice, one indigo accent, cyan only for "live". */
-  --color-paper: #fafaf8;
-  --color-ink: #111114;
-  --color-ink-2: #6b6b72;
-  --color-fill: #f2f2ee;
-  --color-fill-2: #e9e9e3;
-  --color-hairline: #e4e4dd;
-  --color-indigo: #4f46e5;
-  --color-indigo-soft: #6366f1;
-  --color-violet: #7c3aed;
+  /* MysticAgent — "mystic meets machine", dark: deep graphite, editorial
+     serif, mono as the agent's voice, one indigo accent, cyan for "live". */
+  --color-ink: #f2f2f0;
+  --color-ink-2: #9aa0ab;
+  --color-fill: #16181e;
+  --color-fill-2: #1e2129;
+  --color-hairline: #272b34;
+  --color-indigo: #818cf8;
+  --color-indigo-soft: #a5b4fc;
+  --color-violet: #a78bfa;
   --color-live: #22d3ee;
-  --color-term: #0c0d10;
+  --color-term: #0a0b0e;
   /* legacy aliases still used by some components */
   --color-blue: #4f46e5;
   --color-blue-soft: #6366f1;
@@ -61,26 +60,26 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* Warm paper, editorial light theme */
+/* Deep graphite, editorial dark theme */
 :root {
-  --background: #fafaf8;
-  --foreground: #111114;
-  --card: #ffffff;
-  --card-foreground: #111114;
-  --popover: #ffffff;
-  --popover-foreground: #111114;
-  --primary: #4f46e5;
+  --background: #0e0f13;
+  --foreground: #f2f2f0;
+  --card: #16181e;
+  --card-foreground: #f2f2f0;
+  --popover: #16181e;
+  --popover-foreground: #f2f2f0;
+  --primary: #6366f1;
   --primary-foreground: #ffffff;
-  --secondary: #f2f2ee;
-  --secondary-foreground: #111114;
-  --muted: #f2f2ee;
-  --muted-foreground: #6b6b72;
-  --accent: #f2f2ee;
-  --accent-foreground: #111114;
-  --destructive: #dc2626;
-  --border: #e4e4dd;
-  --input: #e4e4dd;
-  --ring: #4f46e5;
+  --secondary: #16181e;
+  --secondary-foreground: #f2f2f0;
+  --muted: #16181e;
+  --muted-foreground: #9aa0ab;
+  --accent: #16181e;
+  --accent-foreground: #f2f2f0;
+  --destructive: #f87171;
+  --border: #272b34;
+  --input: #272b34;
+  --ring: #6366f1;
   --chart-1: #1d4ed8;
   --chart-2: #7c3aed;
   --chart-3: #6e6e73;
