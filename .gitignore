@@ -1,0 +1,35 @@
+# Secrets — never commit
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Node / Next.js (site/, dashboard/)
+node_modules/
+.next/
+out/
+dist/
+*.tsbuildinfo
+.vercel
+
+# Python (core/)
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Local agent data (vault, audit db, generated skills workspace)
+*.sqlite3
+*.db
+data/
+
+# OS / editors
+.DS_Store
+.idea/
+.vscode/
+*.log
