@@ -10,8 +10,9 @@ class Settings(BaseSettings):
         env_prefix="MYSTIC_", env_file=".env", extra="ignore"
     )
 
-    # where the agent keeps its local state (vault, audit, skills)
-    data_dir: Path = Path.home() / ".mystic-agent"
+    # where the agent keeps its local state (vault, audit, skills);
+    # kept apart from ~/.mystic-agent/venv so 'reset' never touches the app
+    data_dir: Path = Path.home() / ".mystic-agent" / "data"
 
     # http api / dashboard
     host: str = "127.0.0.1"
