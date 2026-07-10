@@ -3,6 +3,7 @@
 Skills forged by the agent (stage 4) will register here too.
 """
 
+import asyncio
 import html
 import re
 from dataclasses import dataclass
@@ -93,6 +94,23 @@ def builtin_tools(db_path: Path) -> list[Tool]:
         local = due.astimezone().strftime("%H:%M")
         return f"przypomnę o {local}: {text}"
 
+    async def run_shell(args: dict[str, Any]) -> str:
+        command = str(args.get("command", "")).strip()
+        if not command:
+            return "podaj komendę"
+        proc = await asyncio.create_subprocess_shell(
+            command,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.STDOUT,
+        )
+        try:
+            out, _ = await asyncio.wait_for(proc.communicate(), timeout=30)
+        except asyncio.TimeoutError:
+            proc.kill()
+            return "przekroczono limit czasu (30s)"
+        text = out.decode("utf-8", "replace").strip()
+        return f"(kod {proc.returncode})\n{text[:3000]}" if text else f"(kod {proc.returncode})"
+
     async def read_url(args: dict[str, Any]) -> str:
         import httpx
 
@@ -152,6 +170,20 @@ def builtin_tools(db_path: Path) -> list[Tool]:
                 "required": ["text", "minutes"],
             },
             func=remind,
+        ),
+        Tool(
+            name="run_shell",
+            capability="shell",
+            description="Uruchamia komendę powłoki na komputerze użytkownika"
+            " (potężne — domyślnie wymaga zgody).",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "command": {"type": "string", "description": "Komenda do wykonania"}
+                },
+                "required": ["command"],
+            },
+            func=run_shell,
         ),
         Tool(
             name="read_url",

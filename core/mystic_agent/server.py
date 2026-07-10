@@ -65,6 +65,8 @@ def build_app() -> FastAPI:
             bus,
             inbox,
             on_claim=lambda chat_id: vault.set("telegram_owner_id", str(chat_id)),
+            registry=registry,
+            permissions=permissions,
         )
 
     async def notify(text: str, meta: dict | None = None) -> None:
@@ -80,6 +82,8 @@ def build_app() -> FastAPI:
         settings.openai_api_key or vault.get("openai_api_key") or "",
     )
     from .agent import build_system_prompt
+    from .forge import Forge
+    from .skills_loader import skills_dir
 
     system_prompt = build_system_prompt(
         persona=vault.get("persona_prompt") or "",
@@ -88,6 +92,8 @@ def build_app() -> FastAPI:
     loop = AgentLoop(
         bus, provider, registry, permissions, inbox, audit, notify,
         system_prompt=system_prompt,
+        forge=Forge(provider),
+        skills_dir=skills_dir(settings.data_dir),
     )
 
     async def reminder_worker() -> None:
@@ -118,7 +124,13 @@ def build_app() -> FastAPI:
                 )
 
     @asynccontextmanager
-    async def lifespan(_: FastAPI):
+    async def lifespan(fastapi_app: FastAPI):
+        from .skills_loader import load_skills
+
+        for tool in await load_skills(settings.data_dir):
+            registry.register(tool)
+        fastapi_app.state.tool_count = len(registry.all())
+
         tasks = [
             asyncio.create_task(loop.run_forever(), name="agent-loop"),
             asyncio.create_task(reminder_worker(), name="reminders"),
@@ -181,6 +193,17 @@ def build_app() -> FastAPI:
             )
         )
         return decision
+
+    @app.get("/skills")
+    async def skills_list() -> list[dict]:
+        return [
+            {
+                "name": t.name,
+                "capability": t.capability,
+                "description": t.description,
+            }
+            for t in registry.all()
+        ]
 
     @app.get("/permissions")
     async def permissions_all() -> dict:

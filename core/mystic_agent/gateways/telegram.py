@@ -13,6 +13,7 @@ from telegram import (
 from telegram.ext import (
     Application,
     CallbackQueryHandler,
+    CommandHandler,
     ContextTypes,
     MessageHandler,
     filters,
@@ -20,6 +21,15 @@ from telegram.ext import (
 
 from ..events import Event, EventBus
 from ..permissions import DecisionInbox
+
+HELP_TEXT = (
+    "Komendy MysticAgent:\n"
+    "/help — ta pomoc\n"
+    "/skills — lista umiejętności\n"
+    "/learn <opis> — naucz agenta nowego narzędzia\n"
+    "/permissions — poziomy uprawnień\n\n"
+    "Poza tym po prostu pisz — zajmę się resztą."
+)
 
 log = logging.getLogger(__name__)
 
@@ -32,12 +42,21 @@ class TelegramGateway:
         bus: EventBus,
         inbox: DecisionInbox,
         on_claim: Callable[[int], None] | None = None,
+        registry=None,
+        permissions=None,
     ) -> None:
         self._owner_id = owner_id
         self._bus = bus
         self._inbox = inbox
         self._on_claim = on_claim
+        self._registry = registry
+        self._permissions = permissions
         self._app = Application.builder().token(token).build()
+        self._app.add_handler(CommandHandler("help", self._cmd_help))
+        self._app.add_handler(CommandHandler("start", self._cmd_help))
+        self._app.add_handler(CommandHandler("skills", self._cmd_skills))
+        self._app.add_handler(CommandHandler("learn", self._cmd_learn))
+        self._app.add_handler(CommandHandler("permissions", self._cmd_permissions))
         self._app.add_handler(
             MessageHandler(filters.TEXT & ~filters.COMMAND, self._on_message)
         )
@@ -76,6 +95,52 @@ class TelegramGateway:
             Event(
                 type="telegram.message",
                 payload={"text": update.message.text},
+                source="telegram",
+            )
+        )
+
+    async def _cmd_help(self, update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
+        if update.message and self._is_owner(update.message.chat_id):
+            await update.message.reply_text(HELP_TEXT)
+
+    async def _cmd_skills(self, update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
+        if not (update.message and self._is_owner(update.message.chat_id)):
+            return
+        if self._registry is None:
+            await update.message.reply_text("brak rejestru narzędzi")
+            return
+        lines = [
+            f"• {t.name} [{t.capability}] — {t.description}"
+            for t in self._registry.all()
+        ]
+        await update.message.reply_text(
+            "Umiejętności:\n" + "\n".join(lines) + "\n\nDodaj: /learn <opis>"
+        )
+
+    async def _cmd_permissions(
+        self, update: Update, _: ContextTypes.DEFAULT_TYPE
+    ) -> None:
+        if not (update.message and self._is_owner(update.message.chat_id)):
+            return
+        if self._registry is None or self._permissions is None:
+            return
+        caps = sorted({t.capability for t in self._registry.all()})
+        lines = [f"• {c}: {self._permissions.get(c).value}" for c in caps]
+        await update.message.reply_text("Uprawnienia:\n" + "\n".join(lines))
+
+    async def _cmd_learn(self, update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
+        if not (update.message and self._is_owner(update.message.chat_id)):
+            return
+        desc = (update.message.text or "").partition(" ")[2].strip()
+        if not desc:
+            await update.message.reply_text(
+                "Napisz co ma umieć, np:\n/learn policz ile dni do podanej daty"
+            )
+            return
+        await self._bus.publish(
+            Event(
+                type="forge.request",
+                payload={"description": desc},
                 source="telegram",
             )
         )

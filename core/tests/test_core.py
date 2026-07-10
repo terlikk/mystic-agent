@@ -151,3 +151,74 @@ async def test_remind_tool_schedules_reminder(paths):
     assert len(rows) == 1
     assert rows[0]["text"] == "wyjmij pranie"
     assert rows[0]["status"] == "pending"
+
+
+class ForgeProvider:
+    """Returns a valid skill file that doubles a number."""
+
+    async def chat(self, system, messages, tools):
+        return LLMReply(
+            text=(
+                "SKILL = {\n"
+                '    "name": "double",\n'
+                '    "capability": "math",\n'
+                '    "description": "Podwaja liczbę.",\n'
+                '    "parameters": {"type": "object", "properties":'
+                ' {"n": {"type": "number"}}, "required": ["n"]},\n'
+                "}\n\n"
+                "def run(args):\n"
+                '    return str(args["n"] * 2)\n\n'
+                "def test():\n"
+                '    assert run({"n": 3}) == "6"\n'
+            )
+        )
+
+
+async def test_forge_generates_tests_and_proposes(paths, tmp_path):
+    from mystic_agent.forge import Forge
+
+    forge = Forge(ForgeProvider())
+    result = await forge.forge("podwój liczbę")
+    assert result.ok, result.error
+    assert result.name == "double"
+    assert "def run" in result.code
+
+
+async def test_learn_end_to_end_registers_skill(paths, tmp_path):
+    from mystic_agent.forge import Forge
+    from mystic_agent.skills_loader import skills_dir
+
+    db_path, _ = paths
+    bus = EventBus()
+    audit = AuditLog(db_path)
+    permissions = PermissionStore(db_path)
+    inbox = DecisionInbox(db_path)
+    registry = ToolRegistry()
+    sent: list[str] = []
+
+    async def notify(text, meta=None):
+        sent.append(text)
+
+    loop = AgentLoop(
+        bus, ForgeProvider(), registry, permissions, inbox, audit, notify,
+        forge=Forge(ForgeProvider()),
+        skills_dir=skills_dir(tmp_path),
+    )
+
+    # /learn → forge → proposal in the inbox
+    await loop.handle(
+        Event(type="forge.request", payload={"description": "podwój liczbę"},
+              source="test")
+    )
+    pending = inbox.pending()
+    assert len(pending) == 1 and pending[0]["tool"] == "__forge__"
+
+    # approve → skill file written and registered, usable via sandbox
+    decision = inbox.resolve(pending[0]["id"], approved=True)
+    await loop.handle(
+        Event(type="decision.approved", payload=decision, source="test")
+    )
+    assert (skills_dir(tmp_path) / "double.py").exists()
+    tool = registry.get("double")
+    assert tool is not None
+    assert await tool.func({"n": 5}) == "10"
