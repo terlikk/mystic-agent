@@ -28,15 +28,29 @@ def start(host: str | None, port: int | None) -> None:
         settings.port = port
 
     from .server import build_app
+    from .setup_wizard import is_configured, run_wizard
     from .splash import print_splash
+
+    import sys
+
+    if not is_configured() and sys.stdin.isatty():
+        run_wizard()
 
     app = build_app()
     print_splash(
-        telegram_on=bool(settings.telegram_bot_token),
-        model=settings.llm_model,
-        tool_count=3,
+        telegram_on=app.state.telegram_on,
+        model=app.state.model,
+        tool_count=app.state.tool_count,
     )
     uvicorn.run(app, host=settings.host, port=settings.port, log_level="warning")
+
+
+@main.command()
+def setup() -> None:
+    """Skonfiguruj klucze od nowa (klucz LLM, telegram) — trafiają do sejfu."""
+    from .setup_wizard import run_wizard
+
+    run_wizard(force=True)
 
 
 @main.command()

@@ -40,10 +40,11 @@ def build_app() -> FastAPI:
 
     telegram: TelegramGateway | None = None
     token = settings.telegram_bot_token or vault.get("telegram_bot_token") or ""
+    owner_id = settings.telegram_owner_id or int(
+        vault.get("telegram_owner_id") or 0
+    )
     if token:
-        telegram = TelegramGateway(
-            token, settings.telegram_owner_id, bus, inbox
-        )
+        telegram = TelegramGateway(token, owner_id, bus, inbox)
 
     async def notify(text: str, meta: dict | None = None) -> None:
         if telegram is not None:
@@ -51,8 +52,9 @@ def build_app() -> FastAPI:
         else:
             log.info("notify (no telegram): %s", text)
 
+    model = vault.get("llm_model") or settings.llm_model
     provider = make_provider(
-        settings.llm_model,
+        model,
         settings.anthropic_api_key or vault.get("anthropic_api_key") or "",
         settings.openai_api_key or vault.get("openai_api_key") or "",
     )
@@ -81,6 +83,9 @@ def build_app() -> FastAPI:
             await telegram.stop()
 
     app = FastAPI(title=NAME, version=__version__, lifespan=lifespan)
+    app.state.telegram_on = telegram is not None
+    app.state.model = model
+    app.state.tool_count = len(registry.all())
 
     @app.get("/health")
     async def health() -> dict:
