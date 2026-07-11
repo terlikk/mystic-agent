@@ -712,6 +712,7 @@ def phone_tools(vault, owner_name: str) -> list[Tool]:
             auth_token=vault.get("twilio_auth_token") or "",
             from_number=vault.get("twilio_number") or "",
             public_url=vault.get("public_url") or "",
+            relay_token=vault.get("relay_token") or "",
             elevenlabs_voice=vault.get("elevenlabs_voice") or "",
         )
         name = vault.get("user_name") or owner_name

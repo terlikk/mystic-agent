@@ -17,6 +17,9 @@ class Settings(BaseSettings):
     # http api / dashboard
     host: str = "127.0.0.1"
     port: int = 7700
+    # telephony relay — separate, minimal server; ONLY this port is ever
+    # exposed via a tunnel, never the dashboard/vault endpoints
+    relay_port: int = 7701
 
     # llm — provider is inferred from the model name prefix
     llm_model: str = "claude-sonnet-5"

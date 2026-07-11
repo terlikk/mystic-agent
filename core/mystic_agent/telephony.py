@@ -17,19 +17,25 @@ class TwilioConfig:
     account_sid: str
     auth_token: str
     from_number: str
-    public_url: str  # https://xxxx.trycloudflare.com (reaches :7700)
+    public_url: str  # https://xxxx.trycloudflare.com — tunnels the RELAY port
+    relay_token: str = ""  # secret path token so only Twilio can connect
     elevenlabs_voice: str = ""  # if set → ElevenLabs TTS, else Google pl-PL
 
     @property
     def ready(self) -> bool:
         return bool(
-            self.account_sid and self.auth_token and self.from_number and self.public_url
+            self.account_sid
+            and self.auth_token
+            and self.from_number
+            and self.public_url
+            and self.relay_token
         )
 
     @property
     def wss_relay(self) -> str:
         base = self.public_url.rstrip("/")
-        return base.replace("https://", "wss://").replace("http://", "ws://") + "/relay"
+        base = base.replace("https://", "wss://").replace("http://", "ws://")
+        return f"{base}/relay/{self.relay_token}"
 
 
 def build_twiml(cfg: TwilioConfig, goal: str, owner_name: str) -> str:

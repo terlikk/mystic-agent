@@ -153,21 +153,23 @@ async def test_write_file(paths, tmp_path):
 def test_telephony_twiml_and_gating():
     from mystic_agent.telephony import TwilioConfig, build_twiml
 
-    cfg = TwilioConfig("AC1", "tok", "+48111", "https://x.trycloudflare.com")
+    cfg = TwilioConfig("AC1", "tok", "+48111", "https://x.trycloudflare.com",
+                       relay_token="secret123")
     assert cfg.ready is True
-    assert cfg.wss_relay == "wss://x.trycloudflare.com/relay"
+    assert cfg.wss_relay == "wss://x.trycloudflare.com/relay/secret123"
     xml = build_twiml(cfg, "zarezerwuj stolik na 4 osoby", "Filip")
     assert "ConversationRelay" in xml
-    assert "wss://x.trycloudflare.com/relay" in xml
+    assert "wss://x.trycloudflare.com/relay/secret123" in xml
     assert "asystent AI w imieniu Filip" in xml
     assert 'ttsProvider="Google"' in xml  # no ElevenLabs voice set → Google
 
     # with an ElevenLabs voice → switches provider
-    cfg2 = TwilioConfig("AC1", "tok", "+48111", "https://x.io", elevenlabs_voice="Rachel")
+    cfg2 = TwilioConfig("AC1", "tok", "+48111", "https://x.io",
+                        relay_token="t", elevenlabs_voice="Rachel")
     assert 'ttsProvider="ElevenLabs"' in build_twiml(cfg2, "cel", "Filip")
 
-    # missing config → not ready
-    assert TwilioConfig("", "", "", "").ready is False
+    # missing token → not ready even with the rest set
+    assert TwilioConfig("AC1", "tok", "+48111", "https://x.io").ready is False
 
 
 async def test_call_tool_needs_config(paths):

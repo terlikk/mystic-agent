@@ -37,11 +37,20 @@ def build_app() -> FastAPI:
     permissions = PermissionStore(settings.db_path)
     inbox = DecisionInbox(settings.db_path)
 
+    import secrets as _secrets
+
     from .automations import AutomationStore
     from .flags import Flags
 
     automations = AutomationStore(settings.db_path)
     flags = Flags(settings.db_path)
+
+    # secret path token so only Twilio (which gets it in our TwiML) can reach
+    # the public relay; generated once and kept in the vault
+    relay_token = vault.get("relay_token")
+    if not relay_token:
+        relay_token = _secrets.token_urlsafe(24)
+        vault.set("relay_token", relay_token)
 
     registry = ToolRegistry()
     for tool in builtin_tools(settings.db_path):
@@ -221,6 +230,7 @@ def build_app() -> FastAPI:
             asyncio.create_task(loop.run_forever(), name="agent-loop"),
             asyncio.create_task(reminder_worker(), name="reminders"),
             asyncio.create_task(scheduler_worker(), name="scheduler"),
+            asyncio.create_task(_run_relay_server(), name="relay-server"),
         ]
         if telegram is not None:
             await telegram.start()
@@ -244,8 +254,18 @@ def build_app() -> FastAPI:
     async def dashboard() -> str:
         return _dashboard
 
-    @app.websocket("/relay")
-    async def relay(ws: WebSocket) -> None:
+    # The telephony relay lives on its OWN minimal app + port. Only this
+    # port is ever exposed via a tunnel, and even then the WebSocket path
+    # carries a secret token — the dashboard, vault and control endpoints
+    # never leave localhost.
+    relay_app = FastAPI()
+
+    @relay_app.get("/health")
+    async def relay_health() -> dict:
+        return {"relay": "ok"}
+
+    @relay_app.websocket("/relay/{token}")
+    async def relay(ws: WebSocket, token: str) -> None:
         """Twilio ConversationRelay brain: transcribed speech in, spoken
         reply out. The agent runs the conversation toward a goal, then
         reports the outcome + transcript to the owner."""
@@ -253,6 +273,9 @@ def build_app() -> FastAPI:
 
         from .telephony import CALL_SYSTEM
 
+        if token != relay_token:
+            await ws.close(code=1008)
+            return
         await ws.accept()
         state = {
             "goal": "", "owner": "użytkownika", "to": "",
@@ -311,6 +334,17 @@ def build_app() -> FastAPI:
             f"— transkrypcja —\n{transcript[:1500]}",
             None,
         )
+
+    async def _run_relay_server() -> None:
+        """Serve the relay app on its own localhost port (the only thing a
+        tunnel ever exposes)."""
+        import uvicorn as _uvicorn
+
+        config = _uvicorn.Config(
+            relay_app, host="127.0.0.1", port=settings.relay_port,
+            log_level="warning",
+        )
+        await _uvicorn.Server(config).serve()
 
     @app.get("/connections")
     async def connections() -> dict:
