@@ -8,7 +8,7 @@ from contextlib import asynccontextmanager
 
 from pathlib import Path as _Path
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
 
 from . import __version__
@@ -46,12 +46,14 @@ def build_app() -> FastAPI:
     registry = ToolRegistry()
     for tool in builtin_tools(settings.db_path):
         registry.register(tool)
-    from .tools import automation_tools, payment_tools
+    from .tools import automation_tools, payment_tools, phone_tools
     from .wallet import Wallet
 
     for tool in automation_tools(automations):
         registry.register(tool)
     for tool in payment_tools(Wallet(settings.db_path)):
+        registry.register(tool)
+    for tool in phone_tools(vault, vault.get("user_name") or "użytkownika"):
         registry.register(tool)
 
     mailbox = None
@@ -242,6 +244,74 @@ def build_app() -> FastAPI:
     async def dashboard() -> str:
         return _dashboard
 
+    @app.websocket("/relay")
+    async def relay(ws: WebSocket) -> None:
+        """Twilio ConversationRelay brain: transcribed speech in, spoken
+        reply out. The agent runs the conversation toward a goal, then
+        reports the outcome + transcript to the owner."""
+        import json
+
+        from .telephony import CALL_SYSTEM
+
+        await ws.accept()
+        state = {
+            "goal": "", "owner": "użytkownika", "to": "",
+            "messages": [], "transcript": [],
+        }
+        try:
+            while True:
+                msg = json.loads(await ws.receive_text())
+                kind = msg.get("type")
+                if kind == "setup":
+                    params = msg.get("customParameters", {}) or {}
+                    state["goal"] = params.get("goal", "")
+                    state["owner"] = params.get("owner", "użytkownika")
+                    state["to"] = msg.get("to", "")
+                    audit.record(
+                        "agent", "call.started", state["to"], state["goal"],
+                        "rozmowa telefoniczna",
+                    )
+                elif kind == "prompt" and msg.get("last"):
+                    said = msg.get("voicePrompt", "")
+                    state["transcript"].append(f"rozmówca: {said}")
+                    state["messages"].append({"role": "user", "content": said})
+                    system = CALL_SYSTEM.format(owner=state["owner"], goal=state["goal"])
+                    reply = await provider.chat(system, state["messages"], [])
+                    text = (reply.text or "").strip() or "Przepraszam, czy może Pan powtórzyć?"
+                    state["messages"].append({"role": "assistant", "content": text})
+                    state["transcript"].append(f"asystent: {text}")
+                    await ws.send_text(json.dumps({"type": "text", "token": text, "last": True}))
+                elif kind == "error":
+                    log.warning("relay error: %s", msg.get("description"))
+        except WebSocketDisconnect:
+            pass
+        except Exception:
+            log.exception("relay failed")
+        finally:
+            if state["transcript"]:
+                await _finalize_call(state)
+
+    async def _finalize_call(state: dict) -> None:
+        transcript = "\n".join(state["transcript"])
+        try:
+            summary = await provider.chat(
+                "Podsumuj wynik tej rozmowy telefonicznej w 1–2 zdaniach po polsku.",
+                [{"role": "user", "content": transcript}],
+                [],
+            )
+            outcome = (summary.text or "").strip()
+        except Exception:
+            outcome = "(nie udało się podsumować)"
+        audit.record(
+            "agent", "call.ended", state.get("to", ""), outcome,
+            "wynik rozmowy telefonicznej",
+        )
+        await notify(
+            f"📞 Rozmowa zakończona ({state.get('to','')})\n\n{outcome}\n\n"
+            f"— transkrypcja —\n{transcript[:1500]}",
+            None,
+        )
+
     @app.get("/connections")
     async def connections() -> dict:
         return {
@@ -255,6 +325,11 @@ def build_app() -> FastAPI:
                 settings.telegram_bot_token or vault.get("telegram_bot_token")
             ),
             "email": bool(vault.get("email_address")),
+            "phone": bool(
+                vault.get("twilio_account_sid")
+                and vault.get("twilio_number")
+                and vault.get("public_url")
+            ),
             "model": model,
         }
 
@@ -271,6 +346,9 @@ def build_app() -> FastAPI:
         if body.get("email_address") and body.get("email_password"):
             vault.set("email_address", str(body["email_address"]).strip())
             vault.set("email_password", str(body["email_password"]).strip())
+        for k in ("twilio_number", "public_url", "elevenlabs_voice"):
+            if body.get(k):
+                vault.set(k, str(body[k]).strip())
         audit.record(
             "user", "connections.updated", list(body.keys()), "ok",
             "zmiana połączeń z panelu",

@@ -45,6 +45,7 @@ CAPABILITY_DEFAULTS: dict[str, "Level"] = {
     "email_send": Level.PROPOSE,    # consequential — always ask
     "shell": Level.PROPOSE,
     "payment": Level.PROPOSE,
+    "phone": Level.PROPOSE,         # calls someone on your behalf — always ask
 }
 
 

@@ -150,6 +150,38 @@ async def test_write_file(paths, tmp_path):
     assert target.read_text() == "# Raport\ngotowe"
 
 
+def test_telephony_twiml_and_gating():
+    from mystic_agent.telephony import TwilioConfig, build_twiml
+
+    cfg = TwilioConfig("AC1", "tok", "+48111", "https://x.trycloudflare.com")
+    assert cfg.ready is True
+    assert cfg.wss_relay == "wss://x.trycloudflare.com/relay"
+    xml = build_twiml(cfg, "zarezerwuj stolik na 4 osoby", "Filip")
+    assert "ConversationRelay" in xml
+    assert "wss://x.trycloudflare.com/relay" in xml
+    assert "asystent AI w imieniu Filip" in xml
+    assert 'ttsProvider="Google"' in xml  # no ElevenLabs voice set → Google
+
+    # with an ElevenLabs voice → switches provider
+    cfg2 = TwilioConfig("AC1", "tok", "+48111", "https://x.io", elevenlabs_voice="Rachel")
+    assert 'ttsProvider="ElevenLabs"' in build_twiml(cfg2, "cel", "Filip")
+
+    # missing config → not ready
+    assert TwilioConfig("", "", "", "").ready is False
+
+
+async def test_call_tool_needs_config(paths):
+    from unittest.mock import Mock
+
+    from mystic_agent.tools import phone_tools
+
+    vault = Mock()
+    vault.get = Mock(return_value="")  # nothing configured
+    tools = {t.name: t for t in phone_tools(vault, "Filip")}
+    out = await tools["call"].func({"to": "+48500600700", "goal": "test"})
+    assert "nie udało" in out or "konfigur" in out
+
+
 def test_wallet_budget_ceiling(paths):
     from mystic_agent.wallet import Wallet
 

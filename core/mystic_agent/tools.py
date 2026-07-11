@@ -696,6 +696,53 @@ def payment_tools(wallet) -> list[Tool]:
     ]
 
 
+def phone_tools(vault, owner_name: str) -> list[Tool]:
+    """Outbound calling via Twilio. Config is read from the vault at call
+    time, so updated credentials / tunnel take effect without a restart."""
+
+    async def call(args: dict[str, Any]) -> str:
+        from .telephony import TwilioConfig, place_call
+
+        to = str(args.get("to", "")).strip()
+        goal = str(args.get("goal", "")).strip()
+        if not to or not goal:
+            return "podaj numer i cel rozmowy"
+        cfg = TwilioConfig(
+            account_sid=vault.get("twilio_account_sid") or "",
+            auth_token=vault.get("twilio_auth_token") or "",
+            from_number=vault.get("twilio_number") or "",
+            public_url=vault.get("public_url") or "",
+            elevenlabs_voice=vault.get("elevenlabs_voice") or "",
+        )
+        name = vault.get("user_name") or owner_name
+        ok, res = await place_call(cfg, to, goal, name)
+        if ok:
+            return f"dzwonię na {to} w sprawie: {goal} (call {res}) — zdam raport po rozmowie"
+        return f"nie udało się zadzwonić: {res}"
+
+    return [
+        Tool(
+            name="call",
+            capability="phone",
+            description="Dzwoni na podany numer i prowadzi rozmowę w Twoim"
+            " imieniu (jawnie jako asystent AI), by osiągnąć cel. Po rozmowie"
+            " raportuje wynik i transkrypcję.",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "to": {"type": "string", "description": "Numer w formacie +48…"},
+                    "goal": {
+                        "type": "string",
+                        "description": "Co ma załatwić przez telefon",
+                    },
+                },
+                "required": ["to", "goal"],
+            },
+            func=call,
+        ),
+    ]
+
+
 def automation_tools(store) -> list[Tool]:
     """Tools that let the agent set up its own standing instructions —
     so 'pilnuj maili od klientów i odpowiadaj' just works."""
