@@ -131,6 +131,51 @@
   }
 }
 
+/* Ambient indigo glow behind the hero — depth, slowly breathing */
+@keyframes glow-drift {
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    opacity: 0.72;
+    transform: translate3d(2%, -2%, 0) scale(1.06);
+  }
+}
+.ambient-glow {
+  position: absolute;
+  inset: -20% -10% auto auto;
+  height: 620px;
+  width: 620px;
+  border-radius: 9999px;
+  background: radial-gradient(
+    circle,
+    rgba(99, 102, 241, 0.22),
+    rgba(99, 102, 241, 0) 62%
+  );
+  filter: blur(20px);
+  pointer-events: none;
+  animation: glow-drift 14s ease-in-out infinite;
+}
+
+/* Fine grain — warmth against a flat digital dark */
+.grain::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ambient-glow {
+    animation: none;
+  }
+}
+
 /* Orb "breathing" — subtle life on the scroll hero */
 @keyframes orb-breathe {
   0%,
