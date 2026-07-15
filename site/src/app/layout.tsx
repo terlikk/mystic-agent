@@ -22,13 +22,40 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: `${PROJECT.name} — ${PROJECT.tagline}`,
-  description: PROJECT.description,
+  metadataBase: new URL("https://mystic-agent.vercel.app"),
+  title: {
+    default: `${PROJECT.name} — otwarty, self-hosted agent AI (Twój Jarvis)`,
+    template: `%s · ${PROJECT.name}`,
+  },
+  description:
+    "MysticAgent to open-source'owy, self-hosted agent AI, który mieszka na Twoim komputerze. Ogarnia pocztę i kalendarz, umawia wizyty i rezerwacje, dzwoni w Twoim imieniu, robi research — a o ważne rzeczy pyta Ciebie. Zero chmury, zero kont.",
+  keywords: [
+    "mystic agent",
+    "mysticagent",
+    "agent AI",
+    "self-hosted AI agent",
+    "open source Jarvis",
+    "osobisty asystent AI",
+    "autonomiczny agent AI",
+    "agent AI po polsku",
+    "AI który umawia wizyty",
+    "AI asystent telefoniczny",
+  ],
+  alternates: { canonical: "/" },
+  robots: { index: true, follow: true },
+  authors: [{ name: "Filip Terlikowski" }],
   openGraph: {
-    title: `${PROJECT.name} — ${PROJECT.tagline}`,
+    title: `${PROJECT.name} — otwarty, self-hosted agent AI`,
     description: PROJECT.description,
+    url: "https://mystic-agent.vercel.app",
+    siteName: PROJECT.name,
     type: "website",
     locale: "pl_PL",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${PROJECT.name} — otwarty, self-hosted agent AI`,
+    description: PROJECT.description,
   },
 };
 
