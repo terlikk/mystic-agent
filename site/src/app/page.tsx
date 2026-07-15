@@ -14,16 +14,9 @@ export default function Home() {
 
       <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-3xl flex-col items-center justify-center px-6 text-center">
         <HeroIntro>
-          <p
-            data-intro
-            className="font-mono text-[11px] tracking-[0.28em] text-white/45 uppercase"
-          >
-            open source · self-hosted
-          </p>
-
           <h1
             data-intro
-            className="mt-7 text-[1.75rem] leading-[1.12] font-medium tracking-tight text-balance break-words text-white sm:text-6xl sm:leading-[1.08]"
+            className="text-[1.9rem] leading-[1.12] font-medium tracking-tight text-balance break-words text-white sm:text-6xl sm:leading-[1.08]"
           >
             Agent, który nie czeka,
             <br className="hidden sm:block" /> aż{" "}
@@ -32,27 +25,26 @@ export default function Home() {
 
           <p
             data-intro
-            className="mx-auto mt-6 max-w-lg text-[15px] leading-relaxed text-white/60 sm:text-base"
+            className="mx-auto mt-6 max-w-xl text-[15px] leading-relaxed text-white/65 sm:text-lg"
           >
-            Mieszka na Twoim komputerze i sam pilnuje, załatwia i przypomina —
-            a odzywa się dopiero, gdy ma coś wartościowego albo potrzebuje
-            Twojej zgody.
+            MysticAgent to osobisty agent AI, który mieszka na Twoim
+            komputerze. Sam pilnuje spraw, załatwia je i przypomina — a odzywa
+            się dopiero, gdy ma coś wartościowego albo potrzebuje Twojej zgody.
           </p>
 
           <div data-intro className="mx-auto mt-9 w-full max-w-md">
             <CopyCommand />
           </div>
 
-          <p data-intro className="mt-3 font-mono text-[11px] text-white/40">
-            jedna komenda · macOS / Linux · Python 3.11+
-          </p>
-
           <p
             data-intro
-            className="mx-auto mt-12 max-w-xl font-mono text-[12px] leading-relaxed text-white/35"
+            className="mx-auto mt-10 max-w-xl text-[15px] leading-relaxed text-white/55"
           >
-            maile · kalendarz · research · przeglądarka · głos · pamięć ·
-            płatności z limitem — a czego nie umie, dopisuje sobie sam.
+            Ogarnia pocztę i kalendarz, robi research w sieci, wchodzi na strony
+            i wypełnia formularze za Ciebie, czyta pliki i PDF-y, rozumie Twój
+            głos i zdjęcia. Każdą jego zdolność trzymasz na suwaku: ważne rzeczy
+            zatwierdzasz, resztę robi sam — a wszystko widzisz w audycie. Czego
+            nie umie dziś, dopisze sobie jutro.
           </p>
         </HeroIntro>
       </div>
