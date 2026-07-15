@@ -114,41 +114,35 @@ export default function Home() {
           <div data-intro className="mx-auto mt-9 w-full max-w-md">
             <CopyCommand />
           </div>
-
-          <p
-            data-intro
-            className="mx-auto mt-9 max-w-xl text-base leading-relaxed font-medium text-white/80 sm:text-lg"
-          >
-            MysticAgent to osobisty agent AI, który mieszka na Twoim
-            komputerze. Sam pilnuje spraw, załatwia je i przypomina — a odzywa
-            się dopiero, gdy ma coś wartościowego albo potrzebuje Twojej zgody.
-          </p>
-
-          <p
-            data-intro
-            className="mx-auto mt-6 max-w-xl text-base leading-relaxed font-medium text-white/70 sm:text-lg"
-          >
-            Ogarnia pocztę i kalendarz, robi research w sieci i wchodzi na
-            strony, żeby coś za Ciebie załatwić. Umawia wizyty i rezerwacje — u
-            lekarza, w hotelu, na przegląd auta — dzwoniąc albo wypełniając
-            formularze w Twoim imieniu. Czyta pliki i PDF-y, rozumie Twój głos i
-            zdjęcia. Każdą jego zdolność trzymasz na suwaku: ważne rzeczy
-            zatwierdzasz, resztę robi sam — a wszystko widzisz w audycie. Czego
-            nie umie dziś, dopisze sobie jutro.
-          </p>
-
-          <p
-            data-intro
-            className="mx-auto mt-6 max-w-xl text-base leading-relaxed font-medium text-white/70 sm:text-lg"
-          >
-            Rozmawiasz z nim przez Telegram — piszesz, wysyłasz głosówki i
-            zdjęcia jak do znajomego, a on odpisuje i działa. Dashboard w
-            przeglądarce to z kolei jego panel kontrolny: tam ustawiasz, co mu
-            wolno (suwaki uprawnień), zatwierdzasz ważne decyzje i widzisz pełny
-            audyt oraz podgląd na żywo tego, czym się zajmuje.
-          </p>
         </HeroIntro>
       </div>
+
+      {/* Opis — schodzi poniżej pierwszego ekranu; komenda zostaje wyśrodkowana nad nim */}
+      <section className="relative z-10 mx-auto w-full max-w-xl px-6 pt-4 pb-12 text-center">
+        <p className="mx-auto max-w-xl text-base leading-relaxed font-medium text-white/80 sm:text-lg">
+          MysticAgent to osobisty agent AI, który mieszka na Twoim komputerze.
+          Sam pilnuje spraw, załatwia je i przypomina — a odzywa się dopiero,
+          gdy ma coś wartościowego albo potrzebuje Twojej zgody.
+        </p>
+
+        <p className="mx-auto mt-6 max-w-xl text-base leading-relaxed font-medium text-white/70 sm:text-lg">
+          Ogarnia pocztę i kalendarz, robi research w sieci i wchodzi na strony,
+          żeby coś za Ciebie załatwić. Umawia wizyty i rezerwacje — u lekarza, w
+          hotelu, na przegląd auta — dzwoniąc albo wypełniając formularze w Twoim
+          imieniu. Czyta pliki i PDF-y, rozumie Twój głos i zdjęcia. Każdą jego
+          zdolność trzymasz na suwaku: ważne rzeczy zatwierdzasz, resztę robi sam
+          — a wszystko widzisz w audycie. Czego nie umie dziś, dopisze sobie
+          jutro.
+        </p>
+
+        <p className="mx-auto mt-6 max-w-xl text-base leading-relaxed font-medium text-white/70 sm:text-lg">
+          Rozmawiasz z nim przez Telegram — piszesz, wysyłasz głosówki i zdjęcia
+          jak do znajomego, a on odpisuje i działa. Dashboard w przeglądarce to z
+          kolei jego panel kontrolny: tam ustawiasz, co mu wolno (suwaki
+          uprawnień), zatwierdzasz ważne decyzje i widzisz pełny audyt oraz
+          podgląd na żywo tego, czym się zajmuje.
+        </p>
+      </section>
 
       {/* Instrukcja instalacji — krok po kroku */}
       <section className="relative z-10 mx-auto w-full max-w-2xl px-6 pt-8 pb-20">
