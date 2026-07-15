@@ -39,27 +39,34 @@ const FAQ: { q: string; a: string }[] = [
   },
 ];
 
-const STEPS: { title: string; body: string; code?: string }[] = [
-  {
-    title: "Wklej komendę w terminal",
-    body: "Na macOS lub Linux (potrzebny Python 3.11+). Jedna linijka pobiera i instaluje agenta na Twoim komputerze.",
-    code: PROJECT.installCmd,
-  },
-  {
-    title: "Uruchom agenta",
-    body: "Zobaczysz duży napis MYSTIC AGENT, a agent od razu poprowadzi Cię przez konfigurację.",
-    code: `${PROJECT.cli} start`,
-  },
-  {
-    title: "Skonfiguruj w kilku krokach",
-    body: "Podajesz swój klucz AI (Anthropic lub OpenAI), opcjonalnie bota Telegrama i wybierasz osobowość. Wszystko ląduje w szyfrowanym sejfie na Twoim sprzęcie — nic nie wychodzi do chmury.",
-  },
-  {
-    title: "Otwórz panel w przeglądarce",
-    body: "Panel sterowania działa lokalnie, tylko na Twojej maszynie. Stąd zarządzasz uprawnieniami, zatwierdzasz decyzje i widzisz pełny audyt akcji.",
-    code: "http://localhost:7700",
-  },
-];
+const STEPS: { title: string; body: string; code?: string; prompt?: string }[] =
+  [
+    {
+      title: "Wklej komendę w terminal",
+      body: "Na macOS lub Linux (potrzebny Python 3.11+). Jedna linijka pobiera i instaluje agenta na Twoim komputerze.",
+      code: PROJECT.installCmd,
+    },
+    {
+      title: "Uruchom agenta",
+      body: "Zobaczysz duży napis MYSTIC AGENT, a agent od razu poprowadzi Cię przez konfigurację.",
+      code: `${PROJECT.cli} start`,
+    },
+    {
+      title: "Podaj mózg agenta",
+      body: "Wklejasz swój klucz AI (Anthropic lub OpenAI) i wybierasz osobowość. Wszystko ląduje w szyfrowanym sejfie na Twoim sprzęcie — nic nie wychodzi do chmury.",
+    },
+    {
+      title: "Podłącz bota Telegram",
+      body: "Na Telegramie napisz do @BotFather, wyślij komendę /newbot, nadaj botowi nazwę i skopiuj token, który dostaniesz. Wklejasz go przy konfiguracji (albo później w panelu → Połączenia) — od teraz rozmawiasz z agentem prosto z Telegrama.",
+      code: "@BotFather  →  /newbot  →  skopiuj token",
+      prompt: "",
+    },
+    {
+      title: "Otwórz panel w przeglądarce",
+      body: "Panel kontrolny działa lokalnie, tylko na Twojej maszynie. Stąd ustawiasz uprawnienia, zatwierdzasz decyzje i widzisz pełny audyt — a codziennie piszesz do agenta na Telegramie.",
+      code: "http://localhost:7700",
+    },
+  ];
 
 const jsonLd = {
   "@context": "https://schema.org",
@@ -134,10 +141,11 @@ export default function Home() {
             data-intro
             className="mx-auto mt-6 max-w-xl text-base leading-relaxed font-medium text-white/70 sm:text-lg"
           >
-            Sterujesz nim z panelu w przeglądarce, który agent uruchamia u Ciebie
-            na komputerze. W jednym miejscu masz suwaki uprawnień, skrzynkę
-            decyzji do zatwierdzania, pełny audyt akcji i podgląd na żywo tego,
-            czym się właśnie zajmuje.
+            Rozmawiasz z nim przez Telegram — piszesz, wysyłasz głosówki i
+            zdjęcia jak do znajomego, a on odpisuje i działa. Dashboard w
+            przeglądarce to z kolei jego panel kontrolny: tam ustawiasz, co mu
+            wolno (suwaki uprawnień), zatwierdzasz ważne decyzje i widzisz pełny
+            audyt oraz podgląd na żywo tego, czym się zajmuje.
           </p>
         </HeroIntro>
       </div>
@@ -148,7 +156,7 @@ export default function Home() {
           Jak zainstalować — krok po kroku
         </h2>
         <ol className="space-y-6">
-          {STEPS.map(({ title, body, code }, i) => (
+          {STEPS.map(({ title, body, code, prompt }, i) => (
             <li key={title} className="flex gap-4">
               <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/5 font-mono text-sm text-[#c7d2fe]">
                 {i + 1}
@@ -160,7 +168,9 @@ export default function Home() {
                 </p>
                 {code && (
                   <code className="mt-3 block overflow-x-auto rounded-lg border border-white/10 bg-black/40 px-4 py-2.5 font-mono text-[13px] whitespace-nowrap text-white/80">
-                    <span className="mr-2 text-white/30 select-none">$</span>
+                    {prompt !== "" && (
+                      <span className="mr-2 text-white/30 select-none">$</span>
+                    )}
                     {code}
                   </code>
                 )}
