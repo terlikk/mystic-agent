@@ -26,5 +26,9 @@ export function HeroIntro({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  return <div ref={ref}>{children}</div>;
+  return (
+    <div ref={ref} className="w-full">
+      {children}
+    </div>
+  );
 }

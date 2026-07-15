@@ -8,7 +8,7 @@ export default function Home() {
   return (
     <AuroraBackground
       showRadialGradient
-      className="!h-auto min-h-screen !items-stretch !justify-start !bg-[#08080f]"
+      className="!h-auto min-h-screen !items-stretch !justify-start overflow-x-hidden !bg-[#08080f]"
     >
       <Navbar />
 
@@ -23,11 +23,11 @@ export default function Home() {
 
           <h1
             data-intro
-            className="mt-7 text-4xl leading-[1.08] font-medium tracking-tight text-balance text-white sm:text-6xl"
+            className="mt-7 text-[1.75rem] leading-[1.12] font-medium tracking-tight text-balance break-words text-white sm:text-6xl sm:leading-[1.08]"
           >
             Agent, który nie czeka,
-            <br />
-            aż <span className="text-[#c7d2fe]">napiszesz</span>.
+            <br className="hidden sm:block" /> aż{" "}
+            <span className="text-[#c7d2fe]">napiszesz</span>.
           </h1>
 
           <p

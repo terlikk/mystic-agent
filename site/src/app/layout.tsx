@@ -42,7 +42,9 @@ export default function RootLayout({
       lang="pl"
       className={`dark ${inter.variable} ${fraunces.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-[#08080f]">{children}</body>
+      <body className="min-h-full flex flex-col overflow-x-hidden bg-[#08080f]">
+        {children}
+      </body>
     </html>
   );
 }
