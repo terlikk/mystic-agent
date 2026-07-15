@@ -40,9 +40,11 @@ export default function Home() {
             data-intro
             className="mx-auto mt-6 max-w-xl text-base leading-relaxed font-medium text-white/70 sm:text-lg"
           >
-            Ogarnia pocztę i kalendarz, robi research w sieci, wchodzi na strony
-            i wypełnia formularze za Ciebie, czyta pliki i PDF-y, rozumie Twój
-            głos i zdjęcia. Każdą jego zdolność trzymasz na suwaku: ważne rzeczy
+            Ogarnia pocztę i kalendarz, robi research w sieci i wchodzi na
+            strony, żeby coś za Ciebie załatwić. Umawia wizyty i rezerwacje — u
+            lekarza, w hotelu, na przegląd auta — dzwoniąc albo wypełniając
+            formularze w Twoim imieniu. Czyta pliki i PDF-y, rozumie Twój głos i
+            zdjęcia. Każdą jego zdolność trzymasz na suwaku: ważne rzeczy
             zatwierdzasz, resztę robi sam — a wszystko widzisz w audycie. Czego
             nie umie dziś, dopisze sobie jutro.
           </p>
