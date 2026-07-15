@@ -30,6 +30,9 @@
   --color-blue-soft: #26262b;
   --color-violet: #ff5236;
 
+  /* Aurora animation (Tailwind v4: registered here, keyframes below) */
+  --animate-aurora: aurora 60s linear infinite;
+
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -63,26 +66,46 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* Cool near-white, operator's-console light theme */
+/* Dark aurora theme — the whole page sits on the animated aurora */
 :root {
-  --background: #fbfbfc;
-  --foreground: #0a0a0b;
-  --card: #ffffff;
-  --card-foreground: #0a0a0b;
-  --popover: #ffffff;
-  --popover-foreground: #0a0a0b;
-  --primary: #ff5236;
-  --primary-foreground: #ffffff;
-  --secondary: #f3f3f5;
-  --secondary-foreground: #0a0a0b;
-  --muted: #f3f3f5;
-  --muted-foreground: #6b6b74;
-  --accent: #f3f3f5;
-  --accent-foreground: #0a0a0b;
-  --destructive: #dc2626;
-  --border: #e3e3e8;
-  --input: #e3e3e8;
-  --ring: #ff5236;
+  /* aurora gradient variables (Tailwind default color values) */
+  --white: #ffffff;
+  --black: #000000;
+  --transparent: transparent;
+  --blue-500: #3b82f6;
+  --blue-400: #60a5fa;
+  --blue-300: #93c5fd;
+  --indigo-300: #a5b4fc;
+  --violet-200: #ddd6fe;
+
+  /* content tokens, tuned for light text on the dark aurora */
+  --color-ink: #f4f4f7;
+  --color-ink-2: #a8a8b4;
+  --color-fill: rgba(255, 255, 255, 0.05);
+  --color-fill-2: rgba(255, 255, 255, 0.08);
+  --color-hairline: rgba(255, 255, 255, 0.14);
+  --color-signal: #ff6a4d;
+  --color-signal-soft: #ff8368;
+  --color-term: #0a0b12;
+
+  --background: #08080f;
+  --foreground: #f4f4f7;
+  --card: #0d0e16;
+  --card-foreground: #f4f4f7;
+  --popover: #0d0e16;
+  --popover-foreground: #f4f4f7;
+  --primary: #ff6a4d;
+  --primary-foreground: #0a0a0b;
+  --secondary: #16171f;
+  --secondary-foreground: #f4f4f7;
+  --muted: #16171f;
+  --muted-foreground: #a8a8b4;
+  --accent: #16171f;
+  --accent-foreground: #f4f4f7;
+  --destructive: #f87171;
+  --border: rgba(255, 255, 255, 0.14);
+  --input: rgba(255, 255, 255, 0.14);
+  --ring: #ff6a4d;
   --chart-1: #1d4ed8;
   --chart-2: #7c3aed;
   --chart-3: #6e6e73;
@@ -187,6 +210,16 @@
   }
   50% {
     filter: brightness(1.12) saturate(1.15);
+  }
+}
+
+/* Aurora drift */
+@keyframes aurora {
+  from {
+    background-position: 50% 50%, 50% 50%;
+  }
+  to {
+    background-position: 350% 50%, 350% 50%;
   }
 }
 
