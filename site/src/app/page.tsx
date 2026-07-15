@@ -16,21 +16,12 @@ export default function Home() {
         <HeroIntro>
           <h1
             data-intro
-            className="text-[1.9rem] leading-[1.12] font-medium tracking-tight text-balance break-words text-white sm:text-6xl sm:leading-[1.08]"
+            className="text-[2rem] leading-[1.1] font-semibold tracking-tight text-balance break-words text-white sm:text-6xl sm:leading-[1.06]"
           >
             Agent, który nie czeka,
             <br className="hidden sm:block" /> aż{" "}
             <span className="text-[#c7d2fe]">napiszesz</span>.
           </h1>
-
-          <p
-            data-intro
-            className="mx-auto mt-6 max-w-xl text-[15px] leading-relaxed text-white/65 sm:text-lg"
-          >
-            MysticAgent to osobisty agent AI, który mieszka na Twoim
-            komputerze. Sam pilnuje spraw, załatwia je i przypomina — a odzywa
-            się dopiero, gdy ma coś wartościowego albo potrzebuje Twojej zgody.
-          </p>
 
           <div data-intro className="mx-auto mt-9 w-full max-w-md">
             <CopyCommand />
@@ -38,7 +29,16 @@ export default function Home() {
 
           <p
             data-intro
-            className="mx-auto mt-10 max-w-xl text-[15px] leading-relaxed text-white/55"
+            className="mx-auto mt-9 max-w-xl text-base leading-relaxed font-medium text-white/80 sm:text-lg"
+          >
+            MysticAgent to osobisty agent AI, który mieszka na Twoim
+            komputerze. Sam pilnuje spraw, załatwia je i przypomina — a odzywa
+            się dopiero, gdy ma coś wartościowego albo potrzebuje Twojej zgody.
+          </p>
+
+          <p
+            data-intro
+            className="mx-auto mt-6 max-w-xl text-base leading-relaxed font-medium text-white/70 sm:text-lg"
           >
             Ogarnia pocztę i kalendarz, robi research w sieci, wchodzi na strony
             i wypełnia formularze za Ciebie, czyta pliki i PDF-y, rozumie Twój
