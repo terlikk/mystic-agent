@@ -144,6 +144,33 @@ export default function Home() {
         </p>
       </section>
 
+      {/* Podgląd dashboardu */}
+      <section className="relative z-10 mx-auto w-full max-w-4xl px-6 pt-4 pb-16">
+        <h2 className="mb-3 text-center text-lg font-semibold text-white/90">
+          Panel, z którego nad nim panujesz
+        </h2>
+        <p className="mx-auto mb-8 max-w-lg text-center text-[15px] leading-relaxed text-white/60">
+          Dashboard działa lokalnie w przeglądarce. Widzisz na żywo, czym agent
+          się zajmuje, ustawiasz suwaki uprawnień, zatwierdzasz decyzje i masz
+          pełny audyt akcji.
+        </p>
+        <div className="overflow-hidden rounded-xl border border-white/10 bg-[#0c0d12] shadow-2xl shadow-black/60">
+          <div className="flex items-center gap-2 border-b border-white/10 px-4 py-3">
+            <span className="h-3 w-3 rounded-full bg-[#ff5f57]" />
+            <span className="h-3 w-3 rounded-full bg-[#febc2e]" />
+            <span className="h-3 w-3 rounded-full bg-[#28c840]" />
+            <span className="ml-2 font-mono text-xs text-white/30">
+              localhost:7700
+            </span>
+          </div>
+          <img
+            src="/dashboard.png"
+            alt="Panel sterowania MysticAgent — przegląd, aktywność agenta na żywo i uprawnienia"
+            className="block w-full"
+          />
+        </div>
+      </section>
+
       {/* Instrukcja instalacji — krok po kroku */}
       <section className="relative z-10 mx-auto w-full max-w-2xl px-6 pt-8 pb-20">
         <h2 className="mb-8 text-center text-lg font-semibold text-white/90">
