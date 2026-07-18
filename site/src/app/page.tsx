@@ -71,7 +71,7 @@ const STEPS: { title: string; body: string; code?: string; prompt?: string }[] =
 const DASH: { title: string; desc: string; img: string }[] = [
   {
     title: "Przegląd",
-    desc: "Pulpit startowy: ile agent ma narzędzi, aktywne automatyzacje, kolejka decyzji i „głos agenta" na żywo — czyli co robi w tej chwili.",
+    desc: "Pulpit startowy: ile agent ma narzędzi, aktywne automatyzacje, kolejka decyzji i podgląd na żywo tego, czym się właśnie zajmuje.",
     img: "/dash-przeglad.png",
   },
   {
@@ -81,7 +81,7 @@ const DASH: { title: string; desc: string; img: string }[] = [
   },
   {
     title: "Decyzje",
-    desc: "Skrzynka rzeczy do zatwierdzenia — zanim agent zrobi coś ważnego, czeka tu na Twoje „tak" albo „nie".",
+    desc: "Skrzynka rzeczy do zatwierdzenia — zanim agent zrobi coś ważnego, czeka tu na Twoją zgodę albo odmowę.",
     img: "/dash-decyzje.png",
   },
   {
