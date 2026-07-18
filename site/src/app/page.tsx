@@ -68,6 +68,34 @@ const STEPS: { title: string; body: string; code?: string; prompt?: string }[] =
     },
   ];
 
+const DASH: { title: string; desc: string; img: string }[] = [
+  {
+    title: "Przegląd",
+    desc: "Pulpit startowy: ile agent ma narzędzi, aktywne automatyzacje, kolejka decyzji i „głos agenta" na żywo — czyli co robi w tej chwili.",
+    img: "/dash-przeglad.png",
+  },
+  {
+    title: "Umiejętności",
+    desc: "Suwak przy każdej zdolności: Wyłączone → Proponuje → Robi + raport → Robi cicho. Ty ustalasz, co robi sam, a o co ma pytać.",
+    img: "/dash-umiejetnosci.png",
+  },
+  {
+    title: "Decyzje",
+    desc: "Skrzynka rzeczy do zatwierdzenia — zanim agent zrobi coś ważnego, czeka tu na Twoje „tak" albo „nie".",
+    img: "/dash-decyzje.png",
+  },
+  {
+    title: "Aktywność",
+    desc: "Pełny audyt: każda akcja agenta z godziną i poziomem uprawnień, do wglądu w każdej chwili.",
+    img: "/dash-aktywnosc.png",
+  },
+  {
+    title: "Połączenia",
+    desc: "Kanały i klucze: model AI, bot Telegram, e-mail. Wszystko ląduje w szyfrowanym sejfie na Twojej maszynie.",
+    img: "/dash-polaczenia.png",
+  },
+];
+
 const jsonLd = {
   "@context": "https://schema.org",
   "@graph": [
@@ -154,20 +182,33 @@ export default function Home() {
           się zajmuje, ustawiasz suwaki uprawnień, zatwierdzasz decyzje i masz
           pełny audyt akcji.
         </p>
-        <div className="overflow-hidden rounded-xl border border-white/10 bg-[#0c0d12] shadow-2xl shadow-black/60">
-          <div className="flex items-center gap-2 border-b border-white/10 px-4 py-3">
-            <span className="h-3 w-3 rounded-full bg-[#ff5f57]" />
-            <span className="h-3 w-3 rounded-full bg-[#febc2e]" />
-            <span className="h-3 w-3 rounded-full bg-[#28c840]" />
-            <span className="ml-2 font-mono text-xs text-white/30">
-              localhost:7700
-            </span>
-          </div>
-          <img
-            src="/dashboard.png"
-            alt="Panel sterowania MysticAgent — przegląd, aktywność agenta na żywo i uprawnienia"
-            className="block w-full"
-          />
+        <div className="space-y-14">
+          {DASH.map(({ title, desc, img }) => (
+            <figure key={title}>
+              <figcaption className="mb-3">
+                <h3 className="font-medium text-white/90">{title}</h3>
+                <p className="mt-1 max-w-2xl text-[15px] leading-relaxed text-white/60">
+                  {desc}
+                </p>
+              </figcaption>
+              <div className="overflow-hidden rounded-xl border border-white/10 bg-[#0c0d12] shadow-2xl shadow-black/60">
+                <div className="flex items-center gap-2 border-b border-white/10 px-4 py-3">
+                  <span className="h-3 w-3 rounded-full bg-[#ff5f57]" />
+                  <span className="h-3 w-3 rounded-full bg-[#febc2e]" />
+                  <span className="h-3 w-3 rounded-full bg-[#28c840]" />
+                  <span className="ml-2 font-mono text-xs text-white/30">
+                    localhost:7700
+                  </span>
+                </div>
+                <img
+                  src={img}
+                  alt={`Dashboard MysticAgent — zakładka ${title}`}
+                  loading="lazy"
+                  className="block w-full"
+                />
+              </div>
+            </figure>
+          ))}
         </div>
       </section>
 
