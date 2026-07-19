@@ -142,11 +142,9 @@ def build_app() -> FastAPI:
             registry.register(tool)
 
     model = vault.get("llm_model") or settings.llm_model
-    provider = make_provider(
-        model,
-        settings.anthropic_api_key or vault.get("anthropic_api_key") or "",
-        settings.openai_api_key or vault.get("openai_api_key") or "",
-    )
+    anthropic_key = settings.anthropic_api_key or vault.get("anthropic_api_key") or ""
+    openai_key = settings.openai_api_key or vault.get("openai_api_key") or ""
+    provider = make_provider(model, anthropic_key, openai_key)
     from .agent import build_system_prompt
     from .forge import Forge
     from .memory import Conversation, Memory
@@ -166,7 +164,18 @@ def build_app() -> FastAPI:
         flags=flags,
     )
     # key used by voice transcription fallback
-    loop._openai_key = settings.openai_api_key or vault.get("openai_api_key") or ""
+    loop._openai_key = openai_key
+
+    def set_model(name: str) -> None:
+        """Swap the LLM live (takes effect on the next message) and persist it."""
+        loop.provider = make_provider(name, anthropic_key, openai_key)
+        loop.forge = Forge(loop.provider)
+        vault.set("llm_model", name)
+        app.state.model = name
+
+    if telegram is not None:
+        telegram.on_set_model = set_model
+        telegram.current_model = lambda: vault.get("llm_model") or settings.llm_model
 
     async def reminder_worker() -> None:
         """Fires due reminders — the agent speaks up on its own."""

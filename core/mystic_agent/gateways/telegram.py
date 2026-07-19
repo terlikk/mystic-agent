@@ -29,11 +29,19 @@ HELP_TEXT = (
     "/pause — wstrzymaj samodzielne akcje  ·  /resume — wznów\n"
     "/skills — lista umiejętności\n"
     "/learn <opis> — naucz agenta nowego narzędzia\n"
-    "/permissions — poziomy uprawnień\n\n"
+    "/permissions — poziomy uprawnień\n"
+    "/model — pokaż lub zmień model (np. /model opus)\n\n"
     "Poza tym po prostu pisz (lub nagraj / wyślij zdjęcie) — zajmę się resztą."
 )
 
 log = logging.getLogger(__name__)
+
+# friendly shortcuts → full model ids (a full id can also be passed directly)
+MODELS = {
+    "opus": "claude-opus-4-8",
+    "sonnet": "claude-sonnet-5",
+    "haiku": "claude-haiku-4-5-20251001",
+}
 
 
 class TelegramGateway:
@@ -57,6 +65,9 @@ class TelegramGateway:
         self._permissions = permissions
         self._flags = flags
         self._status_fn = status_fn
+        # wired up by the server after the agent loop exists
+        self.on_set_model: Callable[[str], None] | None = None
+        self.current_model: Callable[[], str] | None = None
         self._app = Application.builder().token(token).build()
         self._app.add_handler(CommandHandler("help", self._cmd_help))
         self._app.add_handler(CommandHandler("start", self._cmd_help))
@@ -67,6 +78,7 @@ class TelegramGateway:
         self._app.add_handler(CommandHandler("status", self._cmd_status))
         self._app.add_handler(CommandHandler("pause", self._cmd_pause))
         self._app.add_handler(CommandHandler("resume", self._cmd_resume))
+        self._app.add_handler(CommandHandler("model", self._cmd_model))
         self._app.add_handler(
             MessageHandler(filters.TEXT & ~filters.COMMAND, self._on_message)
         )
@@ -177,6 +189,31 @@ class TelegramGateway:
         if self._flags:
             self._flags.set_bool("paused", False)
         await update.message.reply_text("▶️ Wznowione. Znów działam samodzielnie.")
+
+    async def _cmd_model(self, update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
+        if not (update.message and self._is_owner(update.message.chat_id)):
+            return
+        arg = (update.message.text or "").partition(" ")[2].strip().lower()
+        cur = self.current_model() if self.current_model else "?"
+        if not arg:
+            opts = "\n".join(f"  /model {k} → {v}" for k, v in MODELS.items())
+            await update.message.reply_text(
+                f"Aktualny model: {cur}\n\nZmień:\n{opts}\n\n"
+                "Możesz też podać pełną nazwę, np. /model claude-opus-4-8"
+            )
+            return
+        if self.on_set_model is None:
+            await update.message.reply_text("Zmiana modelu jest teraz niedostępna.")
+            return
+        target = MODELS.get(arg, arg)
+        try:
+            self.on_set_model(target)
+        except Exception as exc:  # np. brak klucza do danego dostawcy
+            await update.message.reply_text(f"Nie udało się przełączyć: {exc}")
+            return
+        await update.message.reply_text(
+            f"✓ Model ustawiony: {target}\nDziała od następnej wiadomości."
+        )
 
     async def _cmd_learn(self, update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
         if not (update.message and self._is_owner(update.message.chat_id)):

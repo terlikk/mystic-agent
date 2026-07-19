@@ -48,7 +48,6 @@ def print_banner(console: Console | None = None) -> None:
     depth = max(dy for _, dy, _ in _EXTRUDE)
     grid_h, grid_w = src_h + depth, src_w + depth
     cell = [[None] * grid_w for _ in range(grid_h)]  # None empty, else style
-    lrow = [[0] * grid_w for _ in range(grid_h)]
     for dx, dy, color in sorted(_EXTRUDE, key=lambda e: -e[1]):  # deepest first
         for r in range(src_h):
             for c in range(src_w):
@@ -58,7 +57,6 @@ def print_banner(console: Console | None = None) -> None:
         for c in range(src_w):
             if rows[r][c] != " ":
                 cell[r][c] = f"bold {_shade(r, src_h)}"  # letter face on top
-                lrow[r][c] = r
 
     margin = max(0, (console.size.width - grid_w) // 2)
     pad = " " * margin
