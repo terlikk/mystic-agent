@@ -11,8 +11,7 @@ BIN_DIR="$HOME/.local/bin"
 say() { printf '%s\n' "$*"; }
 
 say ""
-say "  MysticAgent — instalacja"
-say "  ------------------------"
+say "  MysticAgent — instaluję, chwilkę…"
 
 # 1. find python >= 3.11
 PY=""
@@ -28,21 +27,19 @@ if [ -z "$PY" ]; then
     say "✗ Potrzebny Python 3.11+ (np. brew install python / apt install python3)"
     exit 1
 fi
-say "✓ python: $($PY --version 2>&1)"
 
-# 2. venv + install from the repo (core/ subdirectory)
+# 2. venv + install from the repo (core/ subdirectory), quietly.
 # --no-cache-dir + --upgrade --force-reinstall: always build the latest
 # source, never serve a stale wheel cached under the same version.
-say "→ instaluję do $VENV …"
 "$PY" -m venv "$VENV"
-"$VENV/bin/pip" install --quiet --upgrade pip
-"$VENV/bin/pip" install --quiet --upgrade --force-reinstall --no-cache-dir \
-    "mystic-agent @ git+$REPO#subdirectory=core"
+"$VENV/bin/pip" install --quiet --disable-pip-version-check --upgrade pip >/dev/null 2>&1
+"$VENV/bin/pip" install --quiet --disable-pip-version-check --upgrade \
+    --force-reinstall --no-cache-dir \
+    "mystic-agent @ git+$REPO#subdirectory=core" >/dev/null 2>&1
 
 # 3. link the CLI
 mkdir -p "$BIN_DIR"
 ln -sf "$VENV/bin/mystic-agent" "$BIN_DIR/mystic-agent"
-say "✓ zainstalowano: $BIN_DIR/mystic-agent"
 
 case ":$PATH:" in
     *":$BIN_DIR:"*) ;;
@@ -54,9 +51,11 @@ case ":$PATH:" in
 esac
 
 say ""
-say "Gotowe. Wystartuj agenta:"
+say "  ✓ Gotowe. Odpal agenta:"
 say ""
-say "   mystic-agent start"
+say "      mystic-agent start"
 say ""
-say "Przy pierwszym starcie agent poprosi o klucz API i token bota Telegram —"
-say "wszystko zostaje w szyfrowanym sejfie na tej maszynie."
+say "  Zobaczysz duży napis MYSTIC AGENT, a przy pierwszym uruchomieniu"
+say "  krótką konfigurację: klucz AI · bot Telegram · osobowość · imię."
+say "  Potem panel sterowania czeka w przeglądarce: http://127.0.0.1:7700"
+say ""

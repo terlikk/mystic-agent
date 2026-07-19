@@ -20,6 +20,15 @@ def _shade(i: int, total: int) -> str:
     return _GRADIENT[min(int(i / (total - 1) * (len(_GRADIENT) - 1)), len(_GRADIENT) - 1)]
 
 
+# 3D extrusion: the letters cast a solid diagonal side, from a mid indigo
+# down to near-black, so the wordmark reads as raised blocks on the terminal.
+_EXTRUDE = [
+    (1, 1, "#4a4386"),
+    (2, 2, "#332e5e"),
+    (3, 3, "#211d3b"),
+]
+
+
 def print_banner(console: Console | None = None) -> None:
     console = console or Console()
     # a clean, dedicated splash screen
@@ -29,13 +38,36 @@ def print_banner(console: Console | None = None) -> None:
         pass
     console.print()
     console.print()
-    # center the whole block by a single margin so internal alignment holds
-    # (centering each line on its own width would skew the art)
-    width = max(len(line) for line in BANNER)
-    margin = max(0, (console.size.width - width) // 2)
+
+    # Composite on a character grid: paint the extrusion layers first (deepest
+    # to shallowest, each only where still empty), then the bright gradient
+    # letters on top. Per-cell rendering lets the 3D side peek out down-right.
+    src_h = len(BANNER)
+    src_w = max(len(line) for line in BANNER)
+    rows = [line.ljust(src_w) for line in BANNER]
+    depth = max(dy for _, dy, _ in _EXTRUDE)
+    grid_h, grid_w = src_h + depth, src_w + depth
+    cell = [[None] * grid_w for _ in range(grid_h)]  # None empty, else style
+    lrow = [[0] * grid_w for _ in range(grid_h)]
+    for dx, dy, color in sorted(_EXTRUDE, key=lambda e: -e[1]):  # deepest first
+        for r in range(src_h):
+            for c in range(src_w):
+                if rows[r][c] != " ":
+                    cell[r + dy][c + dx] = color
+    for r in range(src_h):
+        for c in range(src_w):
+            if rows[r][c] != " ":
+                cell[r][c] = f"bold {_shade(r, src_h)}"  # letter face on top
+                lrow[r][c] = r
+
+    margin = max(0, (console.size.width - grid_w) // 2)
     pad = " " * margin
-    for i, line in enumerate(BANNER):
-        console.print(Text(pad + line, style=f"bold {_shade(i, len(BANNER))}"))
+    for r in range(grid_h):
+        line = Text(pad)
+        for c in range(grid_w):
+            style = cell[r][c]
+            line.append("█" if style else " ", style=style or "")
+        console.print(line)
     console.print()
     tagline = Text()
     tagline.append("Twój Jarvis.  ", style="bold #e7edf5")
