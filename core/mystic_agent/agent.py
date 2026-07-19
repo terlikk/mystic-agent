@@ -33,6 +33,28 @@ def build_system_prompt(persona: str = "", user_name: str = "") -> str:
         parts.append(f"Do użytkownika zwracaj się: {user_name}.")
     return "\n\n".join(parts)
 
+def _error_message(event: Event, exc: Exception) -> str:
+    """A short, human-friendly Telegram note for a failed event."""
+    text = str(exc)
+    low = text.lower()
+    if "credit balance is too low" in low:
+        return (
+            "⚠️ Skończyły się kredyty API (Anthropic). "
+            "Doładuj na console.anthropic.com → Plans & Billing."
+        )
+    if "username and password not accepted" in low or "5.7.8" in low:
+        return (
+            "⚠️ Nie wysłałem maila — Gmail odrzucił logowanie. Potrzebne hasło "
+            "aplikacji (myaccount.google.com/apppasswords), nie zwykłe hasło."
+        )
+    label = {
+        "telegram.message": "przy odpowiedzi",
+        "decision.approved": "przy wykonywaniu zatwierdzonej akcji",
+        "automation.run": "przy automatyzacji",
+    }.get(event.type, event.type)
+    return f"⚠️ Coś nie wyszło {label}: {text[:200]}"
+
+
 MAX_STEPS = 12  # hard cap per event: decide→act→observe iterations
                # (multi-step web tasks like a booking need several)
 
@@ -78,12 +100,17 @@ class AgentLoop:
             event = await self.bus.get()
             try:
                 await self.handle(event)
-            except Exception:  # keep the loop alive no matter what
+            except Exception as exc:  # keep the loop alive no matter what
                 log.exception("error handling event %s", event.type)
                 self.audit.record(
                     "system", "event.error", event.payload, "exception",
                     f"unhandled error for {event.type}",
                 )
+                # surface it to the user instead of failing silently
+                try:
+                    await self.notify(_error_message(event, exc))
+                except Exception:
+                    log.exception("failed to notify user about error")
             finally:
                 self.bus.task_done()
 
