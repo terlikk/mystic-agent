@@ -23,9 +23,9 @@ def _shade(i: int, total: int) -> str:
 # 3D extrusion: the letters cast a solid diagonal side, from a mid indigo
 # down to near-black, so the wordmark reads as raised blocks on the terminal.
 _EXTRUDE = [
-    (1, 1, "#4a4386"),
-    (2, 2, "#332e5e"),
-    (3, 3, "#211d3b"),
+    (1, 1, "#6f64c8"),
+    (2, 2, "#4c4590"),
+    (3, 3, "#332d63"),
 ]
 
 

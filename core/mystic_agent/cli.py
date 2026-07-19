@@ -19,9 +19,16 @@ def main() -> None:
 @click.option("--port", default=None, type=int, help="Port (domyślnie 7700)")
 def start(host: str | None, port: int | None) -> None:
     """Uruchom agenta (serwis + pętla zdarzeń + telegram)."""
+    # Keep the terminal clean (just the banner + status panel): logs go to a
+    # file, and the chatty libraries are quieted down.
+    settings.ensure_dirs()
     logging.basicConfig(
-        level=logging.INFO, format="%(asctime)s %(name)s: %(message)s"
+        level=logging.INFO,
+        format="%(asctime)s %(name)s: %(message)s",
+        handlers=[logging.FileHandler(settings.data_dir / "agent.log")],
     )
+    for _noisy in ("httpx", "httpcore", "telegram", "telegram.ext", "apscheduler"):
+        logging.getLogger(_noisy).setLevel(logging.WARNING)
     if host:
         settings.host = host
     if port:
