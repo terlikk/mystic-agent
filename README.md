@@ -1,111 +1,103 @@
 <div align="center">
 
-```
-███╗   ███╗██╗   ██╗███████╗████████╗██╗ ██████╗
-████╗ ████║╚██╗ ██╔╝██╔════╝╚══██╔══╝██║██╔════╝
-██╔████╔██║ ╚████╔╝ ███████╗   ██║   ██║██║
-██║╚██╔╝██║  ╚██╔╝  ╚════██║   ██║   ██║██║
-██║ ╚═╝ ██║   ██║   ███████║   ██║   ██║╚██████╗
-╚═╝     ╚═╝   ╚═╝   ╚══════╝   ╚═╝   ╚═╝ ╚═════╝
-   █████╗  ██████╗ ███████╗███╗   ██╗████████╗
-  ██╔══██╗██╔════╝ ██╔════╝████╗  ██║╚══██╔══╝
-  ███████║██║  ███╗█████╗  ██╔██╗ ██║   ██║
-  ██╔══██║██║   ██║██╔══╝  ██║╚██╗██║   ██║
-  ██║  ██║╚██████╔╝███████╗██║ ╚████║   ██║
-  ╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚═╝  ╚═══╝   ╚═╝
-```
+# Mystic Agent
 
-**Your open-source Jarvis. Self-hosted, autonomous, accountable.**
+**A personal AI assistant you host yourself.**
 
-⚠️ **Early access — v0.3.0.** It installs and runs today (email, calendar,
-web, browser, package tracking, voice & photos, tool forge, dashboard),
-but the API and data format may still change between versions. Use it as
-an enthusiast, not yet in production.
+Proactive tools, configurable permissions and a local dashboard.
+
+[Project website](https://mystic-agent.vercel.app) · [Getting started](#getting-started) · [Data flow](#where-your-data-goes) · [Security notes](SECURITY.md)
+
+`Python 3.11+` · `FastAPI` · `Telegram` · `MIT`
 
 </div>
 
 ---
 
-## What is MysticAgent?
+## Overview
 
-MysticAgent is a self-hosted AI agent that automates your life — email, calendar, errands, monitoring — while you stay in full control. It runs entirely on **your** machine: your data and keys never leave your hardware. No cloud, no telemetry, no accounts.
+Mystic Agent runs its Python service, dashboard and local storage on your machine. It connects an AI model to tools for everyday tasks, with per-capability permissions and a decision inbox.
 
-It is a **product, not a framework**: install with one command, then manage everything from a clean web dashboard.
+**Early access:** the package currently declares version `0.3.0`. Interfaces, integrations and data formats are still evolving. Self-hosted describes the application runtime and storage; model calls and connected services can use external providers.
 
-### The four pillars
+## Capabilities in the repository
 
-1. **Product, not framework** — one-command install, configured through a web dashboard, not YAML files.
-2. **Control & trust** — every capability has a permission slider: `Off` / `Propose` / `Act & report` / `Act silently`. Proposed actions land in a decision inbox awaiting your approval. Every action is written to a full audit log.
-3. **Proactivity** — the agent lives on an event stream (new email, cron tick, price drop). It notices and reacts on its own instead of waiting for commands.
-4. **Tool forge** — when the agent lacks a capability, it writes a new tool (real code), tests it in a sandbox, asks for your approval, and registers it. Skills are executable, tested code — not LLM notes.
+| Area | Implementation and requirements |
+| :--- | :--- |
+| Conversation | Telegram gateway and a local web dashboard |
+| Models | Anthropic and OpenAI API adapters; provider credentials and network access required |
+| Everyday tools | Notes, contacts, tasks, reminders, local calendar entries, file/PDF reading and web tools |
+| Email | Email tools requiring mailbox configuration |
+| Browser | Optional Playwright integration; browser dependencies required |
+| Packages | InPost tracking integration; some other carriers return tracking links |
+| Voice & images | Optional local transcription, an OpenAI transcription fallback, and provider-based image descriptions |
+| Automation | Event-driven processing and scheduled work |
+| Tool forge | Generates skill files, runs subprocess checks and requests approval before registration |
+| Telephony | Twilio ConversationRelay integration is present; needs Twilio credentials, a number and a configured public relay |
 
-### What it will do for you (once you grant permission)
+A tool being present in the code does not mean every workflow has been verified against a live service. Google OAuth for Gmail/Calendar and Home Assistant remain planned integrations. The built-in calendar stores local entries; it is not Google Calendar synchronization.
 
-- Triage your inbox, answer routine email, escalate what matters
-- Manage your calendar and negotiate meeting times with people
-- Watch prices, document deadlines, servers, repos — and speak up when action is needed
-- Handle errands: bookings, complaints, subscriptions, package tracking
-- Research topics and deliver syntheses
-- Make phone calls on your behalf (openly, as your assistant)
-- Build itself new tools when it hits a wall
+## Permission model
 
-### Channels
+Each capability can be configured independently:
 
-Telegram bot (primary) + local web dashboard. Planned: telephony (Twilio), Home Assistant.
+| Level | Behavior |
+| :--- | :--- |
+| `off` | Tool use disabled |
+| `propose` | Action waits in the decision inbox |
+| `act_report` | Action runs and is reported afterward |
+| `act_silent` | Action runs with details recorded in the audit log |
 
-## Installation
+Defaults vary by capability. For example, email sending, shell and phone calls default to proposals, while some local and read-only tools run automatically. **Not every action requires approval**; review the levels you enable.
 
-macOS / Linux, Python 3.11+:
+## Getting started
+
+The supplied installer targets **macOS/Linux** and requires Python 3.11+, Git, `curl` and Python virtual-environment support. You also need credentials for the selected model provider. Telegram and other integrations need their own configuration.
+
+Download and inspect the installer, then run it:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/terlikk/mystic-agent/main/install.sh | sh
+curl -fLo install.sh https://raw.githubusercontent.com/terlikk/mystic-agent/main/install.sh
+# Read install.sh before running it.
+sh install.sh
 mystic-agent start
 ```
 
-On first run the terminal walks you through setup (LLM key, Telegram bot,
-optional email, personality) — everything lands in a local encrypted
-vault. Then open the dashboard at **http://localhost:7700**.
+The installer creates a virtual environment under `~/.mystic-agent/venv` and links the CLI into `~/.local/bin`. Ensure that directory is on your `PATH`, or use `~/.local/bin/mystic-agent start`.
 
-Optional extras: `pip install "mystic-agent[browser]"` (web automation),
-`[voice]` (local voice transcription).
+On first start, the CLI runs a configuration wizard. The default dashboard address is **http://127.0.0.1:7700**. Use `mystic-agent setup` to revisit configuration.
 
-> Review the script before piping it to a shell — good habit for any
-> `curl | sh`. It only creates a venv under `~/.mystic-agent` and links a
-> CLI into `~/.local/bin`.
+Optional dependencies are declared in [`core/pyproject.toml`](core/pyproject.toml): `browser` adds Playwright and `voice` adds faster-whisper. Install extras into the same virtual environment as the application; browser automation also needs Playwright browser binaries.
 
-## Architecture
+## Where your data goes
 
-```
-mystic-agent/
-├── site/       # project landing page (Next.js)
-├── core/       # the agent: FastAPI service + event engine (Python)
-├── dashboard/  # local web UI served by core
-└── install.sh  # one-command installer
-```
+- **Local:** application state, the dashboard and the encrypted credential vault are stored on your machine.
+- **Model providers:** prompts, relevant context, tool results and submitted images can be sent to the configured Anthropic or OpenAI API.
+- **Connected services:** Telegram, email, web requests, tracking and Twilio communicate with their respective services. Their credentials are used for those connections.
+- **Voice:** faster-whisper can transcribe locally when installed; the fallback sends audio to OpenAI when an OpenAI key is available. Local model assets may need downloading.
 
-Credentials (OAuth tokens, API keys, bot tokens) live in a local encrypted vault (SQLite). Agent-written code always runs in a sandbox with no vault access.
+This is not a fully offline assistant, and local storage is not a promise that all data stays on the device. External providers may require accounts and incur usage charges.
 
-## Security
+## Runtime boundaries
 
-This agent has real reach — your inbox, your keys, a browser, a shell —
-and it reads untrusted content (emails, web pages) that could try to
-manipulate it (prompt injection). The whole design is about containing
-that. See **[SECURITY.md](SECURITY.md)** for the threat model, the
-sandbox/vault isolation, and how the permission gate limits blast radius.
+The skill runner uses a separate Python process, a temporary working directory, a minimal environment, a timeout and resource limits where available. It does **not** establish a container, filesystem jail or network isolation. A separate process running as the same user is not a hard barrier against access to that user’s files. Review generated skills before approving them.
 
-## Roadmap
+Keep the local dashboard bound to loopback unless you have deliberately configured appropriate access controls. Telephony uses a separate relay; configuring it is a separate step from starting the dashboard. See [`SECURITY.md`](SECURITY.md) for the project’s security design and reporting guidance.
 
-- [x] Landing page — [mystic-agent.vercel.app](https://mystic-agent.vercel.app)
-- [x] Core: event bus, agent loop, permission system, vault, audit log, Telegram gateway
-- [x] Web dashboard: activity stream, decision inbox, skill cards, connections
-- [x] Tool forge — agent writes, sandbox-tests and registers its own tools (`/learn`)
-- [x] Skills: email, calendar, web + browser, files/PDF, contacts, tasks, reminders, package tracking, voice & photos, spending guard
-- [ ] Telephony (Twilio), OAuth Google (Gmail/Calendar), Home Assistant
+## Repository map
+
+| Path | Purpose |
+| :--- | :--- |
+| `core/mystic_agent/` | Python service, providers, tools and event processing |
+| `core/mystic_agent/dashboard/` | Local dashboard served by the application |
+| `core/tests/` | Core tests |
+| `site/` | Next.js project website |
+| `install.sh` | Virtual-environment installer and CLI setup |
 
 ## Po polsku
 
-MysticAgent to self-hosted agent AI — „otwarty Jarvis". Działa w całości na Twoim sprzęcie: żadnej chmury, telemetrii ani kont. Każda zdolność agenta ma suwak uprawnień (Wyłączone / Proponuje / Robi i raportuje / Robi cicho), akcje do zatwierdzenia trafiają do skrzynki decyzji, a wszystko ląduje w audycie. Agent żyje na strumieniu zdarzeń i sam się odzywa, gdy trzeba działać, a gdy czegoś nie umie — pisze sobie nowe narzędzie i pyta Cię o zgodę. Instalujesz jedną komendą, konfigurujesz w terminalu, a potem sterujesz z panelu na `localhost:7700`. Projekt jest we wczesnej fazie (v0.3.0) — działa, ale API może się jeszcze zmieniać.
+Mystic Agent to asystent AI uruchamiany na własnym komputerze. Ma lokalny panel, narzędzia i konfigurowalne uprawnienia. Korzysta jednak z zewnętrznych modeli oraz wybranych integracji — część danych opuszcza urządzenie. To projekt we wczesnej fazie rozwoju; telefonia jest już obecna w kodzie, ale wymaga osobnej konfiguracji.
 
 ## License
 
-[MIT](LICENSE)
+[MIT](LICENSE).
